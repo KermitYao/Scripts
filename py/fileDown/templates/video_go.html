@@ -1,0 +1,34 @@
+{% extends "login.html" %}
+
+{% block fileList %}
+
+    <table border="0">
+        <tr>                       
+            <th>
+                文件名
+            </th>
+            <th id="fill">
+                大小
+            </th>    
+            <th id="fill">
+                时间
+            </th> 
+        </tr>
+        <!-- 开始生成文件列表 -->
+        {% for var in list_file %}
+            <tr>
+                <td>
+                    <li><a href="{{var['name']}}/?type=video" target="_blank">{{var['name']}}</a></li>
+                </td>
+                <td id="fill">
+                    <a>{{var['unit'][0]}} {{var['unit'][1]}}</a>
+                </td>
+                <td id="fill">
+                    <a>{{var['time']}}</a>
+                </td>
+            </tr>                            
+        {% endfor %}
+    </table>
+
+{% endblock %}
+

@@ -1,0 +1,51 @@
+<!<!DOCTYPE HTML>
+<html>                                                                                                                                                                    
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title> PHTOT </title>
+        <link rel="stylesheet" type="text/css" href="http://127.0.0.1:6081/CSS/main_css.css" >
+        <style type="text/css">
+            .folders {
+                margin: left;
+                width: 7%;
+                border: 2px solid #73AD21;
+                padding: 10px;
+            }
+            .photo {text-align:center;
+                }
+            #lal {color:red;
+                text-align:left;
+                }
+        </style>
+    </head>
+    <body>
+        <div class="folders">
+            {% for var in photoList %}
+            <a href="/pic/{{var['dirName']}}?page=1" >{{var['dirName']}}</a><br/>
+            {% endfor %}
+        </div>
+
+        <div class="photo">
+            {% for var in pageInfo['nowPhotoList'] %}
+            <a href="/pic/{{pageInfo['nowDir']}}/{{var}}">
+            <img src="/pic/{{pageInfo['nowDir']}}/{{var}}" alt="无法加载此图片:{{var[:-4]}}"> <br/>
+            </a>
+            {% endfor %}
+            <br/>
+            <br/>
+            <br/>
+            共 {{pageInfo['sumPage']}}页, {{pageInfo['sumPhoto']}} 张图片<br/>
+            <a href="/pic/{{pageInfo['nowDir']}}?page=1">首页</a>&nbsp;
+            <a href="/pic/{{pageInfo['nowDir']}}?page={{pageInfo['uPageNum']}}">上一页</a>&nbsp;
+            <a href="/pic/{{pageInfo['nowDir']}}?page={{pageInfo['nPageNum']}}">下一页</a>&nbsp;
+            <a href="/pic/{{pageInfo['nowDir']}}?page={{pageInfo['tPageNum']}}">尾页</a>&nbsp;
+            <a href="/">返回主页</a>
+            <form action="/pic/{{pageInfo['nowDir']}}" method="GET">
+                <input style="width:30px" name="page"/>
+                <input type="submit" value="跳转"/>
+            </form>
+
+        </div>
+    </body>
+</html>
+

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--匹配创建了注册表键在"HKLM\..\Run" 和值为"test"的操作-->
+<rule>
+    <!--定义-->
+    <definition>
+        <!--作的动作类型-->
+        <operations>
+	        <operation type="RegSetValue">
+		        <!--以下条件成立则被匹配,
+			        创建文件名后四位字符为 "test" 的文件
+		        -->
+                <operator type="AND">
+                    <condition component="RegistryItem" property="Key" condition="is" value="HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" />
+                    <condition component="RegistryItem" property="StringValue" condition="is" value="eeiTest" />
+                </operator>
+            </operation>
+        </operations>
+    </definition>
+    <!--描述-->
+    <description>
+        <!--规则名称-->
+        <name>匹配创建了注册表键在"HKLM\..\Run" 和值为"test"的操作 </name>
+        <!--动作类别-->
+        <category> registry 写入</category>
+        <!--解释可能的原因-->
+        <explanation>有一此程序或用户在注册表添加了一个自启动项</explanation>
+        <!--标记操作系统 (Windows|OSX|ANY)-->
+        <os>Windows</os>
+        <mitreattackid>123 ID</mitreattackid>
+        <!--描述恶意原因-->
+        <maliciousCauses>可能是恶意的，因为有些恶意软件会通过添加自启动进行持久化</maliciousCauses>
+        <!--描述良性原因-->
+        <benignCauses>可能是良性的，可以是正常的软件为了使用方便添加到开机自启动的</benignCauses>
+        <!--建议采取的操作-->
+        <recommendedActions>查看启动路径,分析启动文件</recommendedActions>
+        <actions>
+            <action name="MarkAsScript" />
+        </actions>
+        <!--危险分数 [1-39>信息，40-79>警告，80-100>威胁]-->
+        <severity>50</severity>
+    </description>
+</rule>

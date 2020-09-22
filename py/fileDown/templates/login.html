@@ -1,0 +1,98 @@
+{% extends "index.html" %}
+
+{% block upload %}
+    <p>上传:</p>
+    <p >
+        <p style="color:red;text-indent: 1cm" >服务器不会接受超过 {{uploadsize}} MB 大小的文件,文件上传后保存在 /Tmp 目录,此目录文件会定期清理。</p>
+        <form style="font-size:18px;text-indent: 1cm" id="form1" enctype="multipart/form-data" method="post" action="/upload">
+            <div class="row">
+                <label for="fileToUpload">请选择文件:</label>
+                <br />
+                <input  style="text-indent: 1cm" type="file" name="loadfile" id="loadfile" onchange="fileSelected();"/>
+            </div>
+            <div id="fileName"></div>
+            <div id="fileSize"></div>
+            <div id="fileType"></div>
+            <div class="row">
+                <input type="button" onclick="uploadFile()" value="上传" />
+            </div>
+            <div id="progressNumber"></div>
+        </form>
+            
+    </p>
+    <hr>
+{% endblock %}
+
+{% block fileList %}
+
+    <table border="0">
+        <tr>                       
+            <th>
+                文件名
+            </th>
+            <th id="fill">
+                大小
+            </th>    
+            <th id="fill">
+                时间
+            </th> 
+        </tr>
+        <!-- 开始生成文件列表 -->
+        {% for var in list_file %}
+            <tr>
+                <td>
+                    <li><a href="{{var['name']}}" target="_blank" download="{{var['name']}}" >{{var['name']}}</a></li>
+                </td>
+                <td id="fill">
+                    <a>{{var['unit'][0]}} {{var['unit'][1]}}</a>
+                </td>
+                <td id="fill">
+                    <a>{{var['time']}}</a>
+                </td>
+            </tr>                            
+        {% endfor %}
+    </table>
+
+{% endblock %}
+
+{% block keygen %}
+
+<p>注册:</p>
+<form id="fill" action="/keygen" method="GET">
+    <p>
+        <input  style="width:90px"; placeholder="请输入序列号" name="uuid">
+        -
+        <input style="width:80px"; placeholder="请输入日期" value="{{regDate}}" name="times"> 
+        <!-- 
+            <input type="radio" name="types" value="en">加密
+            <input type="radio" name="types" value="de">解密
+        -->
+        <select name="types">
+            <option value=en >加密</option>
+            <option value=de >解密</option>
+        </select>
+        <button type="submit">计算</button>
+    </p>
+</form>
+<hr>
+
+{% endblock %}
+
+{% block login %}
+    <p id='fill'>
+        用户名:{{username}}   &nbsp&nbsp等级:{{level}}&nbsp&nbsp 
+        <a href="/logout" >
+            登出
+        </a>
+        <a>
+            &nbsp&nbsp
+        </a>
+        <a href="{{mediaUrl}}">
+            {{mediaMsg}}
+        </a>
+            &nbsp&nbsp
+        <a href="/pic">
+            进入PIC
+        </a>
+    </p>
+{% endblock %}
