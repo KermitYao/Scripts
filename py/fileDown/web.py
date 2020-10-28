@@ -188,6 +188,15 @@ def photoInfo(paths,types='dir'):
                 return fileList
 
 
+#获取文件流
+def sendFile(fullDir):
+    #对中文进行转码
+    response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
+    response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
+    return response
+
+
+
 app = Flask(__name__)
 #主页
 @app.route('/')
@@ -201,6 +210,7 @@ def index(filepath=None):
     #如果路径为文件则发送文件流 
     if os.path.isfile(fullDir):
         print(GetPathInfo(fullDir)[2])
+        #请求属于文本类型，则文本类型
         if GetPathInfo(fullDir)[2] in Config.DISPLAY_TEXT:
             if os.path.getsize(fullDir) < Config.DISPLAY_TEXT_MAX * 1024 ** 2:
                 encodeType = codeType(fullDir)
@@ -209,21 +219,21 @@ def index(filepath=None):
                 response.headers["Content-Disposition"] = " filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
                 return response
             else:
-                response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
-                response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
-                return response
+                return sendFile(fullDir)
+        #请求属于视频类型，则返回视频播放页面
         elif GetPathInfo(fullDir)[2] in Config.PLAY_VIDEO:
+            if request.args.get('type','')=='video':
                 fileInfo=GetPathInfo(fullDir)
                 r_page=render_template('video.html',
                                         title=fileInfo[1],
                                         videoPath=request.path
                                         )
                 return r_page
+            else:
+                return sendFile(fullDir)
+        #请求是普通类型，则返回文件流
         else:
-            #对中文文件名进行转码.
-            response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
-            response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
-            return response
+            return sendFile(fullDir)
     elif os.path.isdir(fullDir):
         list_dir=getInfoList(fullDir,'dir')
         list_file=getInfoList(fullDir)
@@ -334,7 +344,6 @@ def pic(dirPath=None):
         pass
     else:
         return page_not_found('此页面暂未开放!')
-
     if 'username' in session:
         if userLevel(session['username'])>0:
             if dirPath:
@@ -343,9 +352,7 @@ def pic(dirPath=None):
                 fullDir=Config.PHOTO_DIR
             if os.path.isfile(fullDir):
                 #对中文文件名进行转码.
-                response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
-                response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
-                return response
+                return sendFile(fullDir)
             elif os.path.isdir(fullDir):
                 #初始目录
                 nowDir=PHOTO_INFO[0]['dirName']
@@ -416,10 +423,7 @@ def text(filePath=None):
     else:
         fullPath=Config.TEXT_DIR
     if os.path.isfile(fullPath):
-        #对中文文件名进行转码.
-        response = make_response(send_from_directory(os.path.split(fullPath)[0],os.path.split(fullPath)[1],as_attachment=True))
-        response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullPath)[1].encode().decode('latin-1'))
-        return response
+        return sendFile(fullDir)
     else:
         return '''
             <p>服务器找不到你要访问的资源!</p>
@@ -517,10 +521,7 @@ def video(filePath=None):
                                             )
                     return r_page
                 else:
-                    #对中文文件名进行转码.
-                    response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
-                    response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
-                    return response
+                    return sendFile(fullDir)
             elif os.path.isdir(fullDir):
                 list_dir=getInfoList(fullDir,'dir')
                 list_file=getInfoList(fullDir)

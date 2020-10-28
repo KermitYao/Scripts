@@ -161,7 +161,7 @@
                         <tr>
                             <td>
                                 {% if var['isVideo'] %}
-                                    <li><a href="{{var['name']}}/" target="_blank" >{{var['name']}}</a></li>
+                                    <li><a href="{{var['name']}}/?type=video" target="_blank" >{{var['name']}}</a></li>
                                 {% else %}
                                     <li><a href="{{var['name']}}/" target="_blank" download="{{var['name']}}" >{{var['name']}}</a></li>
                                 {% endif %}
