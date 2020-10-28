@@ -41,7 +41,11 @@
         {% for var in list_file %}
             <tr>
                 <td>
-                    <li><a href="{{var['name']}}" target="_blank" download="{{var['name']}}" >{{var['name']}}</a></li>
+                    {% if var['isVideo'] %}
+                        <li><a href="{{var['name']}}" target="_blank"  >{{var['name']}}</a></li>
+                    {% else %}
+                        <li><a href="{{var['name']}}" target="_blank" download="{{var['name']}}" >{{var['name']}}</a></li>
+                    {% endif %}
                 </td>
                 <td id="fill">
                     <a>{{var['unit'][0]}} {{var['unit'][1]}}</a>

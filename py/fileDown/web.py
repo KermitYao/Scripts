@@ -2,6 +2,8 @@
 #update 2020-06-12
 #分离出配置文件
 #添加了对文本直接显是，而不是弹出下载
+#2020-10-28
+#添加 如果文件为视频格式,将会返回一个h5的播放页面,而不是弹出文件下载
 #-*-coding:utf-8-*-
 
 from flask import Flask,request,send_from_directory,redirect,url_for,session
@@ -147,7 +149,8 @@ def getInfoList(path,type='file'):
             for file in fileList:
                 ftime=formatTime(os.path.getmtime(os.path.join(path,file)))
                 fsize=os.path.getsize(os.path.join(path,file))
-                infoList.append({'name':file, 'time':ftime, 'unit':bytes(fsize)})
+                isVideo=GetPathInfo(os.path.join(path,file))[2] in Config.PLAY_VIDEO
+                infoList.append({'name':file, 'time':ftime, 'unit':bytes(fsize), 'isVideo':isVideo})
             return infoList
         elif type == 'dir':
             infoList = []
@@ -209,6 +212,13 @@ def index(filepath=None):
                 response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
                 response.headers["Content-Disposition"] = "attachment; filename={}".format(os.path.split(fullDir)[1].encode().decode('latin-1'))
                 return response
+        elif GetPathInfo(fullDir)[2] in Config.PLAY_VIDEO:
+                fileInfo=GetPathInfo(fullDir)
+                r_page=render_template('video.html',
+                                        title=fileInfo[1],
+                                        videoPath=request.path
+                                        )
+                return r_page
         else:
             #对中文文件名进行转码.
             response = make_response(send_from_directory(os.path.split(fullDir)[0],os.path.split(fullDir)[1],as_attachment=True))
@@ -607,7 +617,7 @@ if __name__ == '__main__':
 
     print(Config.USER_INFO)
     print(Config.DISPLAY_TEXT)
-
+    print(Config.PLAY_VIDEO)
     #------------------------------------------------
     app.config['MAX_CONTENT_LENGTH'] = Config.UPLOAD_SIZE * 1024 * 1024
     app.secret_key = Config.SECRET_KEY

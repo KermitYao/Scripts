@@ -13,6 +13,13 @@ class Config():
     DISPLAY_TEXT = tmpList_A + tmpList_a
     # X/MB
     DISPLAY_TEXT_MAX = 1
+
+    #At client play video
+    PLAY_VIDEO = ['.mp4', '.ogg', '.webm']
+    tmpList_B = [s.lower() for s in PLAY_VIDEO if isinstance(s,str)==True]
+    tmpList_b = [s.upper() for s in PLAY_VIDEO if isinstance(s,str)==True]
+    PLAY_VIDEO = tmpList_B + tmpList_b
+
     
     #If system is "Windows" then 
     if os.name=='nt':
@@ -28,7 +35,7 @@ class Config():
         TEXT_DIR=os.path.dirname(__file__)
     #If system is "Linux" then    
     else:
-        ROOT_DIR=r'/media'
+        ROOT_DIR=r'/media/kermit/Tools'
         VIDEO_DIR=r'/media/dataCenter/VIDEO/sexVIDEO'
         UPLOAD_DIR=os.path.join(ROOT_DIR, '/Tmp')
         PHOTO_DIR=r'/media/dataCenter/PIC/sexPIC'
