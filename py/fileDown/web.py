@@ -118,7 +118,7 @@ def formatDate(date,type=1,year=2):
         return None
 
 def checkNum(num):
-    exp=r'^-?\d{1,12}$'
+    exp=r'^-?\d{1,12}-?\d{1,12}$'
     if re.match(exp,num):
         return True
     else:
@@ -302,9 +302,18 @@ def reg():
                         <a href="/">返回到主页</a>
                         '''
                 else:
-                    src_uuid=int(request.args.get('uuid',''))
-                    src_times=int(formatDate(request.args.get('times',''),type=1))
                     src_types=request.args.get('types','')
+                    if src_types=='de':
+                        strUuid=request.args.get('uuid', '').split("-",2)
+                        if len(strUuid) == 3:
+                            src_uuid=int('-'+strUuid[1])
+                            src_times=int(formatDate(str(strUuid[2]),type=1))
+                        elif len(strUuid) == 2:
+                            src_uuid=int(strUuid[0])
+                            src_times=int(formatDate(strUuid[1],type=1))
+                    elif src_types=='en':
+                        src_uuid=int(request.args.get('uuid',''))
+                        src_times=int(formatDate(request.args.get('times',''),type=1))
                 if src_types=='en':
                     r_page=render_template('keygen.html',
                                             keygenDict={
