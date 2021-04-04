@@ -1,9 +1,11 @@
+rem Version is v1.1 , The code by kermit.yao to writen in Windows 10 system.
 @echo off
 setlocal enabledelayedexpansion
-
+title Windows 系列激活.
 
 rem --------user value-----------------
-
+rem 开启调试信息
+set debug=True
 set kmsServer=yjyn.top
 
 rem --------user value-----------------
@@ -11,44 +13,154 @@ rem --------user value-----------------
 rem --------init value-----------------
 set systemActivateOption=False
 set officeActivateOption=False
-set keyOption=False
-set pathOption=False
 set keyValue=False
 set pathValue=False
-set kmsValue=False
 set helpValue=False
+set kmsValue=False
+set kmsReset=False
+set "strlen=set $=^!#1^!#&set ##=&(for %%a in (2048 1024 512 256 128 64 32 16)do if ^!$:~%%a^!. NEQ . set/a##+=%%a&set $=^!$:~%%a^!)&set $=^!$^!fedcba9876543210&set/a##+=0x^!$:~16,1^!"
 rem --------init value-----------------
-
-if "#%*"=="#" (
+set srcArgs=%*
+if "#%~1"=="#" (
 	call :getGuiHelp
 ) else (
 	call :getArgs %*
 )
-echo.systemActivateOption=!systemActivateOption!
-echo.officeActivateOption=!officeActivateOption!
-echo.keyOption=!keyOption!
-echo.pathOption=!pathOption!
-echo.keyValue=!keyValue!
-echo.pathValue=!pathValue!
-echo.kmsValue=!kmsValue!
-echo.helpValue=!helpValue!
 
-exit /b 0
 
-set /p input=(a^|b):
-if "%input%"=="a" call :WinSys
-if "%input%"=="b" call :WinOffice
-pause
-exit /b 0
-:WinSys
-slmgr.vbs /upk
-slmgr.vbs /skms %DDNS%
-slmgr.vbs /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
-slmgr.vbs /ato
-slmgr.vbs /xpr
+if "!helpValue!"=="True" (
+	call :getCmdHelp
+	set exitCode=0
+	goto :exitCode
+	
+)
+
+if "!kmsReset!"=="True" (
+	call :setReset
+	set exitCode=0
+	goto :exitCode
+)
+
+call :getUac
+call :getArgsStatus
+if not "!returnValue!"=="True" (
+	call :getErrorMsg  !returnValue! ERROR
+	set exitCode=1
+	goto :exitCode
+)
+
+if "!systemActivateOption!"=="True" (
+	if "!kmsValue!"=="False" (
+		set kmsValue=!kmsServer!
+	)
+	if "!keyValue!"=="False" (
+		call :getSysVer
+		if "#!debug!"=="#True" echo 系统版本是:[!returnValue!]
+		if "!returnValue!"=="Null" (
+			call :getErrorMsg  "System version not found." ERROR
+			set exitCode=2
+			goto :exitCode
+		)
+		call :getSysKey !returnValue!
+		if "!returnValue!"=="Null" (
+			call :getErrorMsg  "No suitable activation code found." ERROR
+			set exitCode=3
+			goto :exitCode
+		)
+		set keyValue=!returnValue!
+	)
+	if not "!uacStatus!"=="True" (
+		call :getErrorMsg  "You must use an administrator." ERROR
+		set exitCode=4
+		goto :exitCode
+	)
+	
+	call :setActivationSystem
+	if "#!returnValue!"=="#True" (
+		echo 激活成功
+		call :getActivateEnd
+		echo !activateEnd!
+		set exitCode=0
+		goto :exitCode
+	) else (
+		echo 激活失败
+		set exitCode=5
+		goto :exitCode
+	)
+	set exitCode=99
+	goto :exitCode
+)
+
+if "!officeActivateOption!"=="True" (
+	if "!kmsValue!"=="False" (
+		set kmsValue=!kmsServer!
+	)
+	if "!pathValue!"=="False" (
+		call :getOfficePath
+		if "!returnValue!"=="Null" (
+			call :getErrorMsg  "Office path not found." ERROR
+			set exitCode=2
+			goto :exitCode
+		)
+		set pathValue=!returnValue!
+	)
+	if not "!uacStatus!"=="True" (
+		call :getErrorMsg  "You must use an administrator." ERROR
+		set exitCode=4
+		goto :exitCode
+	)
+
+	call :setActivationOffice "!pathValue!\OSPP.VBS"
+	set exitCode=0
+	goto :exitCode
+)
+
+exit /b 7
+:exitCode
+if "#%guiStatus%"=="#True" (
+	echo 按任意键退出
+	if "!debug!"=="True" call :debug
+	pause>nul
+	exit /b !exitCode!
+) else (
+	if "!debug!"=="True" call :debug
+	exit /b !exitCode!
+)
 goto :eof
 
 
+rem ---------------------end ------------------------
+
+:debug
+echo --------------- debug ---------------
+echo exitCode: 正常:0,参数错误:1,无法获取系统版本:2,无法找到合适的key:3,权限不足:4,激活失败:5,未找到office路径:6,未知错误:99
+echo.args=!srcArgs!
+echo.systemActivateOption=!systemActivateOption!
+echo.officeActivateOption=!officeActivateOption!
+echo.keyValue=!keyValue!
+echo.pathValue=!pathValue!
+echo.helpValue=!helpValue!
+echo.kmsValue=!kmsValue!
+echo.kmsReset=!kmsReset!
+call :getActivateEnd
+echo.activateEnd=!returnValue!
+call :getNetStatus baidu.com
+echo netStatus=!returnValue!
+echo.kmsValue=!kmsValue!
+echo.keyValue=!keyValue!
+echo.uacStatus=!uacStatus!
+echo sysVersion=!sysVersion!
+::call :getWindowsKey
+echo --------------- debug ---------------
+goto :eof
+
+
+
+:getUacMessage
+if not "!uacStatus!"==True (
+	call :getErrorMsg  "You must use an administrator." ERROR
+)
+goto :eof
 
 rem 获取UAC状态;return=Null|False|True
 :getUac
@@ -76,6 +188,7 @@ echo\
 echo  -h, --help		[optional] Print this help message
 echo  -s, --system		[optional] Activate the system of windows
 echo  -o, --office		[optional] Activate the office of windows
+echo  -r, --reset		[optional] Reset kms.
 echo  -k, --key		[optional] Specify a key
 echo  -p, --path		[optional] Specify an office path
 echo  -kms		[optional] Specify server of kms
@@ -89,7 +202,8 @@ goto :eof
 
 rem 获取 gui 界面,返回;return=Null|True
 :getGuiHelp
-set getGuiStatus=
+set guiArgsStatus=
+set guiStatus=True
 echo.
 echo.
 echo.#################################
@@ -97,6 +211,8 @@ echo.#				#
 echo.#	s.自动激活Windows系列	#
 echo.#				#
 echo.#	o.自动激活Office系列	#
+echo.#				#
+echo.#	r.重置kms信息		#
 echo.#				#
 echo.#	h.显示命令行参数	#
 echo.#				#
@@ -107,24 +223,65 @@ echo.
 echo.
 set /p input=请选择:(s^|o^|h):
 
-for %%a in (s o h) do (
+for %%a in (s o h r) do (
 	if "#!input!"=="#%%a" (
+		cls
+		echo.
 		call :getArgs -!input!
-		set guiStatus=True
+		set guiArgsStatus=True
 	)
 )
 
-if "#!guiStatus!"=="#True" (
-	set returnValue=!getGuiStatus!
+if "!helpValue!"=="True" (
+	goto :eof
+)
+
+
+if "#!guiArgsStatus!"=="#True" (
+	set returnValue=!guiArgsStatus!
 ) else (
 	call :getErrorMsg "选择错误:[!input!]" ERROR
 	goto getGuiHelp
 )
 goto :eof
 
+rem 判断参数是否冲突；返回 return = True|Error message
+:getArgsStatus
+set returnValue=
+if "!systemActivateOption!"=="True" (
+	if "!officeActivateOption!"=="True" (
+		set returnValue="Error,System and Office cannot same time activate."
+		goto :eof	
+	)
+)
+
+if not "!systemActivateOption!"=="True" (
+	if not "!officeActivateOption!"=="True" (
+		set returnValue="Error,System and Office must select one activate."
+		goto :eof	
+	)
+)
+
+if not "!keyValue!"=="False" (
+	set #1=!keyValue!
+	(%strlen%)
+	if not "!##!"=="29" (
+		set returnValue="Error,The key is not valid."
+		goto :eof	
+	)
+)
+if not "!pathValue!"=="False" (
+	if not exist "!pathValue!\OSPP.VBS" (
+		set returnValue="Error,Office installation path not found."
+		goto :eof
+	)
+)
+set returnValue=True
+goto :eof
+
 rem 显示错误消息,可传入参数 %1 = message
 :getErrorMsg
-cls
+::cls
 echo ****************%2********************
 echo.*%~1
 echo ****************%2********************
@@ -132,58 +289,66 @@ goto :eof
 
 rem 解析传入参数
 :getArgs
-echo %*
 :loop
-if "%1" == "" goto :getArgsBreak
-if "%1" == "-h" (
+set returnValue=
+if "%~1" == "" goto :getArgsBreak
+if "%~1" == "-h" (
 	set helpValue=True
-	call :getCmdHelp
+	rem call :getCmdHelp
 ) else (
-	if "%1" == "--help" (
+	if "%~1" == "--help" (
 		set helpValue=True
-		call :getCmdHelp
+		rem call :getCmdHelp
 	)
 )
 
-if "%1" == "-s" (
+if "%~1" == "-s" (
 	set systemActivateOption=True
 ) else (
-	if "%1" == "--system" (
+	if "%~1" == "--system" (
 		set systemActivateOption=True
 	)
 )
 
-if "%1" == "-o" (
+if "%~1" == "-o" (
 	set officeActivateOption=True
 ) else (
-	if "%1" == "--office" (
+	if "%~1" == "--office" (
 		set officeActivateOption=True
 	)
 )
 
-if "%1" == "-k" (
-	shift
-	set keyValue=%1
+if "%~1" == "-r" (
+	set kmsReset=True
 ) else (
-	if "%1" == "--key" (
-		shift
-		set keyValue=%1
+	if "%~1" == "--reset" (
+		set kmsReset=True
 	)
 )
 
-if "%1" == "-p" (
-	shift
-	set pathValue=%1
+if "%~1" == "-k" (
+	call :getShiftValue %1 %2
+	set keyValue=!returnValue!
 ) else (
-	if "%1" == "--path" (
-		shift
-		set pathValue=%1
+	if "%~1" == "--key" (
+		call :getShiftValue %1 %2
+		set keyValue=!returnValue!
 	)
 )
 
-if "%1" == "-kms" (
-	shift
-	set kmsValue=%1
+if "%~1" == "-p" (
+	call :getShiftValue %1 %2
+	set pathValue=!returnValue!
+) else (
+	if "%~1" == "--path" (
+		call :getShiftValue %1 %2
+		set pathValue=!returnValue!
+	)
+)
+
+if "%~1" == "-kms" (
+	call :getShiftValue %1 %2
+	set kmsValue=!returnValue!
 ) 
 
 shift
@@ -201,7 +366,7 @@ for %%a in (%drive%) do (
 		for /d %%l in ("%%a:\Program Files*") do (
 			for /f "delims=" %%x in ('dir /a-d/b/s  "%%l\OSPP.VBS"2^>nul') do (
 				if exist "%%x" (
-					set officePath=%%x
+					set officePath=%%~dpx
 					goto :getOfficePathBreak
 				)
 			)
@@ -224,7 +389,7 @@ rem  获取网络状态;可传入主机地址:[host];%1 = host|www.baidu.com, return = True|F
 :getNetStatus
 set returnValue=
 set netStatus=
-ping -n 1 %1 >nul
+ping -n 2 %1 >nul
 if !errorlevel! equ 0 (
 	set netStatus=True
 ) else (
@@ -234,6 +399,13 @@ set returnValue=!netStatus!
 
 goto:eof
 
+
+rem 获取传入参数shift后的值;传入参数:%1=%* 返回 return=%1 +1
+:getShiftValue
+set returnValue=
+shift
+set returnValue=%~1
+goto :eof
 
 rem  获取系统版本,系统版本被转换成一个带有通配符的字符串;return = Null|SysVersion
 :getSysVer
@@ -259,21 +431,84 @@ rem 获取激活到期时间
 :getActivateEnd
 set returnValue=
 for /f "skip=1 delims=" %%a in ('cscript //nologo %windir%\system32\slmgr.vbs -xpr') do set activateEnd=%%a
-if "#"=="#!keyList!" (
+
+if "#"=="#!activateEnd!" (
 	set returnValue=Null
 ) else (
 	set returnValue=!activateEnd!
 )
 goto :eof
 
-:setActivation
+:setActivationSystem
+set returnValue=
+set keyActivate=False
+set activateStatus=False
+set tmpStatus=False
+echo 正在设置KMS服务器: [!kmsValue!]
+for /f "delims=" %%a in ('cscript //nologo %windir%\system32\slmgr.vbs -skms !kmsValue! ^>nul ^&^& echo statusTrue') do (
+	set tmp=%%a
+	if "#!tmp:~,10!"=="#statusTrue" (
+		set tmpStatus=True
+	) else (
+		echo 设置kms信息:!tmp!
+	)
+	if "!tmpStatus!"=="True" (
+		goto :kmsIsOk
+	)
+)
+call :getErrorMsg "KMS 服务器设置有误" ERROR
 goto :eof
 
-rem 清楚kms信息=卸载
+:kmsIsOk
+set tmpStatus=False
+echo 正在设置密钥: [!keyValue!]
+for %%a in (!keyValue!) do (
+	if "#!debug!"=="#True" echo 当前KEY:%%a
+	for /f "delims=" %%b in ('cscript //nologo %windir%\system32\slmgr.vbs -ipk %%a ^>nul ^&^& echo statusTrue') do (
+		set tmp=%%b
+		if "#!tmp:~,10!"=="#statusTrue" (
+			set tmpStatus=True
+		) 
+
+		if "!tmpStatus!"=="True" (
+			goto :keyIsOk
+		)
+	)
+)
+call :getErrorMsg "无可用的Key" ERROR
+goto :eof
+
+:keyIsOk
+set tmpStatus=False
+echo 正在激活密钥: [!keyValue!]
+for /f "delims=" %%a in ('cscript //nologo %windir%\system32\slmgr.vbs -ato ^&^& echo statusTrue') do (
+	set tmp=%%a
+	if "#!tmp:~,10!"=="#statusTrue" (
+		set tmpStatus=True
+	)
+)
+
+if "!tmpStatus!"=="True" (
+	set returnValue=!tmpStatus!
+)
+
+goto :eof
+
+rem 激活office 接受参数office安装路径;%1=officePath
+:setActivationOffice
+set returnValue=
+for %%a in (/setprt:1688 /sethst:%kmsServer% /act) do (
+	for /f "delims=" %%b in ('cscript //nologo "%~1" %%a') do if "%%a"=="setprt:1688" (echo 设置端口:%%b) else (echo 设置kms信息:%%b)
+)
+set returnValue=Null
+goto :eof
+
+rem 清除kms信息=卸载
 :setReset
 set returnValue=
-slmgr.vbs -ckms
-slmgr.vbs -rearm
+for %%a in (-ckms -rearm -upk) do (
+	for /f "delims=" %%b in ('cscript //nologo %windir%\system32\slmgr.vbs %%a') do if %%a==-ckms (echo 清除kms信息:%%b) else (echo 重置计算机授权状态:%%b)
+)
 set returnValue=Null
 goto :eof
 
@@ -286,7 +521,7 @@ for /f " tokens=1* delims=#" %%a in ('findstr /i "^%sysVer%" %~fs0') do (
 	set keyList=!keyList! %%b
 )
 if "#"=="#!keyList!" (
-	set keyList=Null
+	set returnValue=Null
 ) else (
 	set returnValue=!keyList!
 )
