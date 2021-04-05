@@ -194,11 +194,12 @@ def process():
             #重置初始变量，填充数据
             urlListParser.resetVar()
             urlListParser.feed(rListUrlText)
-            #print(rListUrlText)
+            print("rListUrlText")
+            print(urlListParser.linkList)
             if len(urlListParser.linkList) < 1:
                 print('  urlListParserError:{}'.format(url))
                 continue
-            #print(urlListParser.linkList)
+            print(urlListParser.linkList)
             videoCount = len(urlListParser.linkList)
 
             #遍历获取视频页面信息
@@ -210,18 +211,23 @@ def process():
                     print('      getUrlTextError:{}'.format(videoUrl))
                     continue
                 urlInfoParser.resetVar()
+                print("rInfoUrlText")
                 urlInfoParser.feed(rInfoUrlText)
-                if len(urlInfoParser.videoInfo) != 4:
+                print(urlInfoParser.videoInfo)
+                if len(urlInfoParser.videoInfo) != 3:
                     print('      urlInfoParserError:{}'.format(videoUrl))
                     continue
                 #写入信息到文本
-                if urlInfoParser.videoInfo['vUrl'] and urlInfoParser.videoInfo['img']:
+                if urlInfoParser.videoInfo['vUrl']:
                     codeName = formatTime(time.time(), 2) + '000000{}'.format(codeCount)[-6:]
                     fileP.write('{0}.(编码:{1}|名称:{2}|网址:{3}|类型:{4}|时间:{5})\n'.format(codeCount, codeName, videoName, urlInfoParser.videoInfo['vUrl'], urlInfoParser.videoInfo['type'], urlInfoParser.videoInfo['time']))
                     codeCount+=1
                     fileP.flush()
+                else:
+                    print('    信息抓取不完整')
 
                     #启用多线程下载  已解析图片  
+                if urlInfoParser.videoInfo['img']:
                     thread = threading.Thread(target=downImg,args=(urlInfoParser.videoInfo['img'],os.path.join(sexInfo, codeName + '.jpg'),headers))
                     thread.start()
                     countName+=1
@@ -229,8 +235,6 @@ def process():
                         if threading.active_count() < threadMax:
                             break
                         time.sleep(1)
-                else:
-                    print('    信息抓取不完整')
 
 
     fileP.close()

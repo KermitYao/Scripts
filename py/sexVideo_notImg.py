@@ -212,7 +212,7 @@ def process():
                 urlInfoParser.resetVar()
                 urlInfoParser.feed(rInfoUrlText)
                 print(urlInfoParser.videoInfo, len(urlInfoParser.videoInfo) )
-                if len(urlInfoParser.videoInfo) < 3:
+                if len(urlInfoParser.videoInfo) != 0:
                     print('      urlInfoParserError:{}'.format(videoUrl))
                     continue
                 #写入信息到文本
