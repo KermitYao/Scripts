@@ -9,14 +9,14 @@ rem 相当于使用强制使用命令行参数；
 
 rem 如果不需要保持为空即可
 
-rem 使用方法 ： SET DEFAULT=-o --agent -l --del , 与正常的cmd参数保持一致
+rem 使用方法 ： SET DEFAULT=-o --agent -l --del -, 与正常的cmd参数保持一致
 
 SET DEFAULT=
 
 rem 开启调试信息
 set debug=True
 rem 解析参数列表
-set argsList=argsHelp argsAll argsHotfix argsProduct argsAgent argsStatus argsLog argsDel
+set argsList=argsHelp argsAll argsHotfix argsProduct argsAgent argsStatus argsLog argsDel argsGui
 ::----------------------------------
 
 rem ----------- init -----------
@@ -134,11 +134,7 @@ goto :eof
 
 
 
-
-
-
-
-rem  获取系统版本;return = Null|SysVersion
+rem 获取系统版本; 传入参数:无需传入；例：call :getSysVer ; 返回值: returnValue = "Windows XP"|"Windows 7"|"Windows 10"|"Windows Server 2008"|"Windows Server 2012"|"Windows Server 2016"|"Windows Server 2019"
 :getSysVer
 set sysVer="Windows XP" "Windows 7" "Windows 10" "Windows Server 2008" "Windows Server 2012" "Windows Server 2016" "Windows Server 2019"
 set returnValue=
@@ -158,7 +154,7 @@ if "#"=="#!sysVersion!" (
 )
 goto :eof
 
-rem  获取系统平台;return = x86|x64
+rem 获取系统平台; 传入参数:无需传入；例：call :getSysArch ; 返回值: returnValue = x86|x64
 :getSysArch
 set sysArch=x86
 if exist C:\Windows\SysWOW64\ (
@@ -188,6 +184,7 @@ echo  -g,	--agent		[optional] Install Agent
 echo  -s,	--status		[optional] Check status
 echo  -l,	--log		[optional] Enable log
 echo  -d,	--del		[optional] Delete downloaded files
+echo  -u,	--gui		[optional] Like GUI show
 echo.
 echo		Example:%~nx0 -o --agent -l --del
 echo\
@@ -239,19 +236,8 @@ if "#!guiArgsStatus!"=="#True" (
 )
 goto :eof
 
-rem 解析传入参数,call :getArgs args argsList
-
-echo  -h,	--help		[optional] Print this help message
-echo  -a,	--all		[optional] Install 'Hotfix & Product & Agent'
-echo  -o,	--hotfix		[optional] Install Hotfix
-echo  -p,	--product		[optional] Install Product
-echo  -g,	--agent		[optional] Install Agent
-echo  -s,	--status		[optional] Check status
-echo  -l,	--log		[optional] Enable log
-echo  -d,	--del		[optional] Delete downloaded files
-
+rem 解析传入参数; 传入参数: %1 = 参数列表；例：call :getArgs args ; 返回值: 无返回值
 :getArgs
-
 for %%a in (%*) do (
 	if /i "#%%a"=="#-h" set argsHelp=True
 	if /i "#%%a"=="#--help" set argsHelp=True
@@ -276,6 +262,9 @@ for %%a in (%*) do (
 
 	if /i "#%%a"=="#-d" set argsDel=True
 	if /i "#%%a"=="#--del" set argsDel=True
+
+	if /i "#%%a"=="#-u" set argsGui=True
+	if /i "#%%a"=="#--gui" set argsGui=True
 	)
 )
 
@@ -286,7 +275,8 @@ goto :eof
 set %1=!%2!
 goto :eof
 
-rem 判断是否安装补丁;传入 call :getHotfixStatus   KB4474419; return = false|true
+
+rem 判断是否安装补丁; 传入参数: %1 = 补丁号；例：call :getHotfixStatus KB4474419 ; 返回值: returnValue=True | False | Null
 :getHotfixStatus
 set hotfixStatus=false
 wmic qfe get hotfixid|find /i "%1" >nul&&set hotfixStatus=true
@@ -309,8 +299,26 @@ rem 对msi进行安装
 start /wait   %~1 "%~2" 
 goto :eof
 
+rem 连接共享主机; 传入参数: %1 = 主机， %2 = 用户名, %3 = 密码; 例：call :connectShare "\\127.0.0.1" "kermit" "5698" ; 返回值: returnValue=True | False
+:connectShare
+set tmpStatus=False
+if "#%~1" == "#" (
+	set returnValue=!tmpStatus!
+	goto :eof
+)
+set cmd_user_param=/user:"%~2"
+echo %cmd_user_param%
+for /f "delims=" %%a in ('net use "%~1" %cmd_user_param% "%~3" 2^>nul ^&^& echo statusTrue') do (
+	set tmp=%%a
+	if "#!tmp:~,10!"=="#statusTrue" (
+		set tmpStatus=True
+	)
+)
+set returnValue=!tmpStatus!
 
-rem 下载文件 ; 传入参数 call :downFile  "selfFile" "url" "savePath"; 返回 downStatus = True|False
+goto :eof
+
+rem 下载文件; 传入参数: %1 = 当前文件路径， %2 = url, %3 = 保存地址; 例：call :downFile "%~f0" "http://192.168.31.99/test.rar" "d:\test.rar"; 返回值: returnValue=True | False
 :downFile
 set downStatus=Flase
 
@@ -329,7 +337,7 @@ if "#%downStatus%"=="#False" (
 set returnValue=%downStatus%
 goto :eof
 
-rem 获取UAC状态;return=Null|False|True
+rem 获取UAC状态; 传入参数: 无参数传入 ; 例：call :getUac ; 返回值: returnValue=True | False | Null
 :getUac
 set uacStatus=
 set returnValue=
@@ -349,7 +357,7 @@ if "#"=="#!uacStatus!" (
 
 goto :eof
 
-rem 写入日志 %1 标题，%2 消息类型, %3 消息文本, %4 写入标准输出,%5 写入日志文件
+rem 写入日志; 传入参数: %1 = 标题， %2 = 消息类型, %3 = 消息文本， %4 = True 写入标准输出 | False，%5 = True 写入日志文件 | False; 例：call :writeLog witeLog ERROR "This is a error message." True False; 返回值:无返回值
 :writeLog
 if "%4"=="true" (
 	echo ****************%1********************
@@ -360,12 +368,12 @@ if "%5"=="true" (
 	(
 	echo ****************%1******************** 
 	echo.*%date% %time% - %1 - %2 - %3
-	)>>%path_log%
+	)>>"%~f0.log"
 )
 
 goto :eof
 
-rem  获取软件版本，使用方法：call :getVersion Product or Agent， 返回值：retrunValue=软件版本，错误值:Nnull
+rem 获取软件版本; 传入参数: %1 =Product | Agent ; 例：call :getVersion Product; 返回值:returnValue=版本号 | Null
 :getVersion
 set version=
 if "#%~1"=="#Product" (
@@ -376,7 +384,6 @@ if "#%~1"=="#Product" (
 for /f "skip=2 tokens=3" %%a in ('reg query %keyValue% /v ProductVersion 2^>nul') do (
 	set version=%%a
 )
-
 
 if "#"=="#%version%" (
 	set returnValue=Null
