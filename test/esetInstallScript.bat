@@ -4,44 +4,44 @@
 setlocal enabledelayedexpansion
 
 ::----------------------------------
-rem å¼€å¯æ­¤å‚æ•°ï¼ŒcmdæŒ‡å®šå‚æ•°å’Œguié€‰æ‹©å°†ä¼šå¤±æ•ˆ;
-rem ç›¸å½“äºŽä½¿ç”¨å¼ºåˆ¶ä½¿ç”¨å‘½ä»¤è¡Œå‚æ•°ï¼›
+rem ¿ªÆô´Ë²ÎÊý£¬cmdÖ¸¶¨²ÎÊýºÍguiÑ¡Ôñ½«»áÊ§Ð§;
+rem Ïàµ±ÓÚÇ¿ÖÆÊ¹ÓÃÃüÁîÐÐ²ÎÊý£»
 
-rem å¦‚æžœä¸éœ€è¦ä¿æŒä¸ºç©ºå³å¯
+rem Èç¹û²»ÐèÒª±£³ÖÎª¿Õ¼´¿É
 
-rem ä½¿ç”¨æ–¹æ³• ï¼š SET DEFAULT=-o --agent -l --del -, ä¸Žæ­£å¸¸çš„cmdå‚æ•°ä¿æŒä¸€è‡´
+rem Ê¹ÓÃ·½·¨ £º SET DEFAULT=-o --agent -l --del -, ÓëÕý³£µÄcmd²ÎÊý±£³ÖÒ»ÖÂ
 
-SET DEFAULT=
+SET DEFAULT_ARGS=
 
-rem å¼€å¯è°ƒè¯•ä¿¡æ¯
+rem ¿ªÆôµ÷ÊÔÐÅÏ¢
 set debug=True
-rem è§£æžå‚æ•°åˆ—è¡¨
+rem ½âÎö²ÎÊýÁÐ±í
 set argsList=argsHelp argsAll argsHotfix argsProduct argsAgent argsStatus argsLog argsDel argsGui
 ::----------------------------------
 
 rem ----------- init -----------
-rem è®¾ç½®åˆå§‹å˜é‡
+rem ÉèÖÃ³õÊ¼±äÁ¿
 :getPackagePatch
 
-rem å·²å®‰è£…çš„è½¯ä»¶,å°äºŽæ­¤æœ¬ç‰ˆåˆ™è¿›è¡Œå®‰è£…
+rem ÒÑ°²×°µÄÈí¼þ,Ð¡ÓÚ´Ë±¾°æÔò½øÐÐ°²×°
 set version_Agent=8.0
 set version_Product_eea=8.0
 set version_Product_efsw=7.3
 rem -------------------
 
-rem Agent ä¸‹è½½åœ°å€
+rem Agent ÏÂÔØµØÖ·
 set path_agetn_x86=
 set path_agetn_x64=
 
-rem Agent é…ç½®æ–‡ä»¶
+rem Agent ÅäÖÃÎÄ¼þ
 set config_file=
 
-rem è¿½åŠ å‚æ•°,ä¸éœ€è¦åˆ™ä¿æŒä¸ºç©º
+rem ×·¼Ó²ÎÊý,²»ÐèÒªÔò±£³ÖÎª¿Õ
 set params_agent=
 
 rem -------------------
 
-rem PC Product ä¸‹è½½åœ°å€
+rem PC Product ÏÂÔØµØÖ·
 set path_eea_v6.5_x86=
 set path_eea_v6.5_x64=
 
@@ -49,18 +49,18 @@ set path_eea_v8.0_x86=
 set path_eea_v8.0_x64=
 
 
-rem SERVER Product ä¸‹è½½åœ°å€
+rem SERVER Product ÏÂÔØµØÖ·
 set path_efsw_v6.5_x86=
 set path_efsw_v6.5_x64=
 
 set path_efsw_v7.3_x86=
 set path_efsw_v7.3_x64=
 
-rem è¿½åŠ å‚æ•°,ä¸éœ€è¦åˆ™ä¿æŒä¸ºç©º
+rem ×·¼Ó²ÎÊý,²»ÐèÒªÔò±£³ÖÎª¿Õ
 set params_Product=
 rem -------------------
 
-rem è¡¥ä¸æ–‡ä»¶ ä¸‹è½½åœ°å€
+rem ²¹¶¡ÎÄ¼þ ÏÂÔØµØÖ·
 set path_hotfix_kb4474419_x86=
 set path_hotfix_kb4474419_x64=
 
@@ -68,12 +68,12 @@ set path_hotfix_kb4490628_x86=
 set path_hotfix_kb4490628_x64=
 rem -------------------
 
-rem ä¸´æ—¶æ–‡ä»¶å’Œæ—¥å¿—å­˜æ”¾è·¯å¾„
+rem ÁÙÊ±ÎÄ¼þºÍÈÕÖ¾´æ·ÅÂ·¾¶
 set path_Temp=%temp%\ESET_TEMP_INSTALL\
-set params_msiexec="msiexec /qn /i "
-
-set params_hotfix="wusa /quiet /norestart"
-
+set params_msiexec="/qn"
+set params_msiexec="/qr"
+set params_hotfix="/quiet /norestart"
+set params_hotfix="/norestart"
 set path_log="%temp%\esetInstall.log"
 set srcArgs=%*
 
@@ -87,19 +87,48 @@ rem ----------- init -----------
 
 rem ----------- begin start -----------
 :begin
-echo %args%
+if not exist %path_Temp% md %path_Temp%
+
+echo [%args%]
+
 if "#%args%"=="#" (
 	call :getGuiHelp
-) else (
-	call :getArgs %args%
+	if "#%DEFAULT_ARGS%"=="#" (set args=!returnValue!) 
+)
+echo %args%
+
+call :getArgs %args%
+
+if "#%argsHelp%"=="#True" (
+	call :getCmdHelp
+	set exitCode=0
+	goto :exitScript
 )
 
-call :getSysVer
-echo %returnValue%
+if "#%argsStatus%"=="#True" (
+	call :getStatus
+	set exitCode=0
+	goto :exitScript
+)
 
-call :debug
-pause
-exit /b 0
+if not "#%argsStatus%"=="#True" (
+	call :writeLog witeLog ERROR "²ÎÊý½âÎö´íÎó£¬Î´ÕÒµ½ºÏÊÊµÄÑ¡Ïî" True True
+	set exitCode=1
+	goto :exitScript
+)
+
+
+rem exitCode: Õý³£:0,²ÎÊý´íÎó:1,ÎÞ·¨»ñÈ¡ÏµÍ³°æ±¾:2,ÎÞ·¨»ñÈ¡ÏµÍ³Æ½Ì¨:3,ÎÞ·¨»ñÈ¡²¹¶¡°ü:4,²¹¶¡°²×°Ê§°Ü:5,ÎÞ·¨»ñÈ¡msi°²×°°ü:6,Î´Öª´íÎó:99
+:exitScript
+echo ÍË³öÂë:%errorlevel%
+::call :debug
+if "#%argsGui%"=="#True" (
+	call :writeLog exit INFO "°´ÈÎÒâ¼ü½áÊø" True True
+	pause >nul
+	exit /b %exitCode%
+) else (
+	exit /b %exitCode%
+)
 
 rem ----------- begin end -----------
 
@@ -108,12 +137,12 @@ rem ----------- begin end -----------
 :debug
 echo --------------- debug ---------------
 echo exitCode: 
-echo ----------å‚æ•°çŠ¶æ€-----------
+echo ----------²ÎÊý×´Ì¬-----------
 for %%a in (%argsList%) do (
 	call :getVar tmpStatus %%a
 	if not "#!tmpStatus!"=="#" echo %%a:!tmpStatus!
 )
-echo ----------å‚æ•°çŠ¶æ€-----------
+echo ----------²ÎÊý×´Ì¬-----------
 echo.systemActivateOption=!systemActivateOption!
 echo.officeActivateOption=!officeActivateOption!
 echo.keyValue=!keyValue!
@@ -134,7 +163,7 @@ goto :eof
 
 
 
-rem èŽ·å–ç³»ç»Ÿç‰ˆæœ¬; ä¼ å…¥å‚æ•°:æ— éœ€ä¼ å…¥ï¼›ä¾‹ï¼šcall :getSysVer ; è¿”å›žå€¼: returnValue = "Windows XP"|"Windows 7"|"Windows 10"|"Windows Server 2008"|"Windows Server 2012"|"Windows Server 2016"|"Windows Server 2019"
+rem »ñÈ¡ÏµÍ³°æ±¾; ´«Èë²ÎÊý:ÎÞÐè´«Èë£»Àý£ºcall :getSysVer ; ·µ»ØÖµ: returnValue = "Windows XP"|"Windows 7"|"Windows 10"|"Windows Server 2008"|"Windows Server 2012"|"Windows Server 2016"|"Windows Server 2019"
 :getSysVer
 set sysVer="Windows XP" "Windows 7" "Windows 10" "Windows Server 2008" "Windows Server 2012" "Windows Server 2016" "Windows Server 2019"
 set returnValue=
@@ -154,7 +183,7 @@ if "#"=="#!sysVersion!" (
 )
 goto :eof
 
-rem èŽ·å–ç³»ç»Ÿå¹³å°; ä¼ å…¥å‚æ•°:æ— éœ€ä¼ å…¥ï¼›ä¾‹ï¼šcall :getSysArch ; è¿”å›žå€¼: returnValue = x86|x64
+rem »ñÈ¡ÏµÍ³Æ½Ì¨; ´«Èë²ÎÊý:ÎÞÐè´«Èë£»Àý£ºcall :getSysArch ; ·µ»ØÖµ: returnValue = x86|x64
 :getSysArch
 set sysArch=x86
 if exist C:\Windows\SysWOW64\ (
@@ -176,12 +205,12 @@ goto :eof
 :getCmdHelp
 echo  Usage: %~nx0 [options]
 echo\
-echo  -h,	--help		[optional] Print this help message
-echo  -a,	--all		[optional] Install 'Hotfix & Product & Agent'
-echo  -o,	--hotfix		[optional] Install Hotfix
-echo  -p,	--product		[optional] Install Product
+echo  -h,	--help		[optional] Print the help message
+echo  -a,	--all		[optional] Install 'Hotfix ^& Product ^& Agent'
+echo  -o,	--hotfix	[optional] Install Hotfix
+echo  -p,	--product	[optional] Install Product
 echo  -g,	--agent		[optional] Install Agent
-echo  -s,	--status		[optional] Check status
+echo  -s,	--status	[optional] Check status
 echo  -l,	--log		[optional] Enable log
 echo  -d,	--del		[optional] Delete downloaded files
 echo  -u,	--gui		[optional] Like GUI show
@@ -191,7 +220,7 @@ echo\
 echo              Code by Windows, 2021-04-5 ,kermit.yao@outlook.com
 goto :eof
 
-rem èŽ·å– gui ç•Œé¢,è¿”å›ž;return=Null|True
+rem »ñÈ¡ gui ½çÃæ,·µ»Ø;return=Null|True
 :getGuiHelp
 set guiArgsStatus=
 set guiStatus=True
@@ -199,27 +228,29 @@ echo.
 echo.
 echo.#################################
 echo.#				#
-echo.#	s.è‡ªåŠ¨æ¿€æ´»Windowsç³»åˆ—	#
+echo.#	a.×Ô¶¯¼ì²é°²×°		#
 echo.#				#
-echo.#	o.è‡ªåŠ¨æ¿€æ´»Officeç³»åˆ—	#
+echo.#	o.°²×°²¹¶¡		#
 echo.#				#
-echo.#	r.é‡ç½®kmsä¿¡æ¯		#
+echo.#	p.°²×°°²È«²úÆ·		#
 echo.#				#
-echo.#	h.æ˜¾ç¤ºå‘½ä»¤è¡Œå‚æ•°	#
+echo.#	g.°²×°·þÎñÆ÷´úÀí	#
+echo.#				#
+echo.#	s.¼ì²é×´Ì¬		#
+echo.#				#
+echo.#	h.ÏÔÊ¾ÃüÁîÐÐ°ïÖú	#
 echo.#				#
 echo.#	kermit.yao@outlook.com	#
 echo.#				#
 echo.#################################
 echo.
 echo.
-set /p input=è¯·é€‰æ‹©:(s^|o^|h):
-
-for %%a in (s o h r) do (
+set /p input=ÇëÑ¡Ôñ:(a^|o^|p^|g^|s^|h):
+for %%a in (a o p g s h) do (
 	if "#!input!"=="#%%a" (
 		cls
 		echo.
-		call :getArgs -!input!
-		set guiArgsStatus=True
+		set guiArgsStatus=-%%a -u -l
 	)
 )
 
@@ -228,15 +259,16 @@ if "!helpValue!"=="True" (
 )
 
 
-if "#!guiArgsStatus!"=="#True" (
+if not "#!guiArgsStatus!"=="#" (
 	set returnValue=!guiArgsStatus!
 ) else (
-	call :getErrorMsg "é€‰æ‹©é”™è¯¯:[!input!]" ERROR
+	cls
+	call :writeLog getGuiHelp ERROR "Ñ¡Ôñ´íÎó:[!input!]" True True
 	goto getGuiHelp
 )
 goto :eof
 
-rem è§£æžä¼ å…¥å‚æ•°; ä¼ å…¥å‚æ•°: %1 = å‚æ•°åˆ—è¡¨ï¼›ä¾‹ï¼šcall :getArgs args ; è¿”å›žå€¼: æ— è¿”å›žå€¼
+rem ½âÎö´«Èë²ÎÊý; ´«Èë²ÎÊý: %1 = ²ÎÊýÁÐ±í£»Àý£ºcall :getArgs args ; ·µ»ØÖµ: ÎÞ·µ»ØÖµ
 :getArgs
 for %%a in (%*) do (
 	if /i "#%%a"=="#-h" set argsHelp=True
@@ -267,19 +299,21 @@ for %%a in (%*) do (
 	if /i "#%%a"=="#--gui" set argsGui=True
 	)
 )
-
+for %%a in (argsHelp argsAll argsHotfix argsProduct argsAgent argsStatus argsLog argsDel argsGui) do (
+	if "#!%%a!"=="#True" set argsStatus=True
+)
 goto :eof
 
-::å¤šé‡å˜é‡èŽ·å–
+::¶àÖØ±äÁ¿»ñÈ¡
 :getVar
 set %1=!%2!
 goto :eof
 
 
-rem åˆ¤æ–­æ˜¯å¦å®‰è£…è¡¥ä¸; ä¼ å…¥å‚æ•°: %1 = è¡¥ä¸å·ï¼›ä¾‹ï¼šcall :getHotfixStatus KB4474419 ; è¿”å›žå€¼: returnValue=True | False | Null
+rem ÅÐ¶ÏÊÇ·ñ°²×°²¹¶¡; ´«Èë²ÎÊý: %1 = ²¹¶¡ºÅ£»Àý£ºcall :getHotfixStatus KB4474419 ; ·µ»ØÖµ: returnValue=True | False | Null
 :getHotfixStatus
-set hotfixStatus=false
-wmic qfe get hotfixid|find /i "%1" >nul&&set hotfixStatus=true
+set hotfixStatus=False
+wmic qfe get hotfixid|find /i "%1" >nul&&set hotfixStatus=True
 
 if "#"=="#!hotfixStatus!" (
 	set returnValue=Null
@@ -288,18 +322,53 @@ if "#"=="#!hotfixStatus!" (
 )
 goto :eof
 
-rem å¯¹msiè¿›è¡Œå®‰è£…;ä¼ å…¥ call :msiInstall  "params_msiexec" "installPath"
+rem °²×°msiÎÄ¼þ; ´«Èë²ÎÊý: %1 = ÎÄ¼þÂ·¾¶£¬%2 = ²ÎÊý£»Àý£ºcall :msiInstall "%temp%\ESET_INSTALL\eea_v8.0.msi" "/qn" ; ·µ»ØÖµ: returnValue=True | False
 :msiInstall
-start /wait  %~1 "%~2"
+set returnValue=False
+start /wait  msiexec /i "%~1" %~2
+if "#%errorlevel%"=="#0" set returnValue=True
 goto :eof
 
-rem å¯¹msiè¿›è¡Œå®‰è£…;ä¼ å…¥ call :msiInstall  "params_msiexec" "installPath"
-rem å¯¹msiè¿›è¡Œå®‰è£…
+rem °²×°cabÎÄ¼þ; ´«Èë²ÎÊý: %1 = ÎÄ¼þÂ·¾¶£¬%2 = ²ÎÊý£»Àý£ºcall :hotFixInstall "%temp%\ESET_INSTALL\Windows-KB4474419.CAB" "/quiet /norestart" ; ·µ»ØÖµ: returnValue=True | False
 :hotFixInstall
-start /wait   %~1 "%~2" 
+set hotFixInstallStatus=False
+
+start /b /wait dism /online /add-package /packagePath:"%~1" %~2
+if "#%errorlevel%"=="#0" set returnValue=True
+
+::dism /online /get-packages | findstr "%~3" >nul && set hotFixInstallStatus=True
+
 goto :eof
 
-rem è¿žæŽ¥å…±äº«ä¸»æœº; ä¼ å…¥å‚æ•°: %1 = ä¸»æœºï¼Œ %2 = ç”¨æˆ·å, %3 = å¯†ç ; ä¾‹ï¼šcall :connectShare "\\127.0.0.1" "kermit" "5698" ; è¿”å›žå€¼: returnValue=True | False
+
+
+:getStatus
+echo ÃüÁî²ÎÊý:%args%
+
+call :getUac
+echo UACÈ¨ÏÞ:!uacStatus!
+
+call :getSysVer
+echo ÏµÍ³°æ±¾:!sysVersion!
+
+call :getSysArch
+echo ÏµÍ³Æ½Ì¨ÀàÐÍ:!sysArch!
+
+call :getHotfixStatus KB4474419
+echo KB4474419 ²¹¶¡°²×°×´Ì¬:!returnValue!
+
+call :getHotfixStatus KB4490628
+echo KB4490628 ²¹¶¡°²×°×´Ì¬:!returnValue!
+
+call :getVersion
+echo ²úÆ·°²×°×´Ì¬:!returnValue!
+call :getVersion
+echo Agent °²×°×´Ì¬:!returnValue!
+
+goto :eof
+
+
+rem Á¬½Ó¹²ÏíÖ÷»ú; ´«Èë²ÎÊý: %1 = Ö÷»ú£¬ %2 = ÓÃ»§Ãû, %3 = ÃÜÂë; Àý£ºcall :connectShare "\\127.0.0.1" "kermit" "5698" ; ·µ»ØÖµ: returnValue=True | False
 :connectShare
 set tmpStatus=False
 if "#%~1" == "#" (
@@ -318,7 +387,7 @@ set returnValue=!tmpStatus!
 
 goto :eof
 
-rem ä¸‹è½½æ–‡ä»¶; ä¼ å…¥å‚æ•°: %1 = å½“å‰æ–‡ä»¶è·¯å¾„ï¼Œ %2 = url, %3 = ä¿å­˜åœ°å€; ä¾‹ï¼šcall :downFile "%~f0" "http://192.168.31.99/test.rar" "d:\test.rar"; è¿”å›žå€¼: returnValue=True | False
+rem ÏÂÔØÎÄ¼þ; ´«Èë²ÎÊý: %1 = µ±Ç°ÎÄ¼þÂ·¾¶£¬ %2 = url, %3 = ±£´æµØÖ·; Àý£ºcall :downFile "%~f0" "http://192.168.31.99/test.rar" "d:\test.rar"; ·µ»ØÖµ: returnValue=True | False
 :downFile
 set downStatus=Flase
 
@@ -337,7 +406,7 @@ if "#%downStatus%"=="#False" (
 set returnValue=%downStatus%
 goto :eof
 
-rem èŽ·å–UACçŠ¶æ€; ä¼ å…¥å‚æ•°: æ— å‚æ•°ä¼ å…¥ ; ä¾‹ï¼šcall :getUac ; è¿”å›žå€¼: returnValue=True | False | Null
+rem »ñÈ¡UAC×´Ì¬; ´«Èë²ÎÊý: ÎÞ²ÎÊý´«Èë ; Àý£ºcall :getUac ; ·µ»ØÖµ: returnValue=True | False | Null
 :getUac
 set uacStatus=
 set returnValue=
@@ -357,23 +426,25 @@ if "#"=="#!uacStatus!" (
 
 goto :eof
 
-rem å†™å…¥æ—¥å¿—; ä¼ å…¥å‚æ•°: %1 = æ ‡é¢˜ï¼Œ %2 = æ¶ˆæ¯ç±»åž‹, %3 = æ¶ˆæ¯æ–‡æœ¬ï¼Œ %4 = True å†™å…¥æ ‡å‡†è¾“å‡º | Falseï¼Œ%5 = True å†™å…¥æ—¥å¿—æ–‡ä»¶ | False; ä¾‹ï¼šcall :writeLog witeLog ERROR "This is a error message." True False; è¿”å›žå€¼:æ— è¿”å›žå€¼
+rem Ð´ÈëÈÕÖ¾; ´«Èë²ÎÊý: %1 = ±êÌâ£¬ %2 = ÏûÏ¢ÀàÐÍ, %3 = ÏûÏ¢ÎÄ±¾£¬ %4 = True Ð´Èë±ê×¼Êä³ö | False£¬%5 = True Ð´ÈëÈÕÖ¾ÎÄ¼þ | False; Àý£ºcall :writeLog witeLog ERROR "This is a error message." True False; ·µ»ØÖµ:ÎÞ·µ»ØÖµ
 :writeLog
-if "%4"=="true" (
+if "%4"=="True" (
 	echo ****************%1********************
 	echo.*%date% %time% - %1 - %2 - %3
+	echo ****************%1********************
 )
 
-if "%5"=="true" (
+if "%5"=="True" (
 	(
 	echo ****************%1******************** 
 	echo.*%date% %time% - %1 - %2 - %3
-	)>>"%~f0.log"
+	echo ****************%1******************** 
+	)>>"%path_Temp%\%~nx0.log"
 )
 
 goto :eof
 
-rem èŽ·å–è½¯ä»¶ç‰ˆæœ¬; ä¼ å…¥å‚æ•°: %1 =Product | Agent ; ä¾‹ï¼šcall :getVersion Product; è¿”å›žå€¼:returnValue=ç‰ˆæœ¬å· | Null
+rem »ñÈ¡Èí¼þ°æ±¾; ´«Èë²ÎÊý: %1 =Product | Agent ; Àý£ºcall :getVersion Product; ·µ»ØÖµ:returnValue=°æ±¾ºÅ | Null
 :getVersion
 set version=
 if "#%~1"=="#Product" (
@@ -394,7 +465,7 @@ goto :eof
 
 :exitCode
 if "#%guiStatus%"=="#True" (
-	echo æŒ‰ä»»æ„é”®é€€å‡º
+	echo °´ÈÎÒâ¼üÍË³ö
 	if "!debug!"=="True" call :debug
 	pause>nul
 	exit /b !exitCode!
