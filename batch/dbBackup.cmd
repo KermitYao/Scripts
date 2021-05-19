@@ -23,7 +23,7 @@ set fsu=False
 set dbtype=0
 
 ::数据库地址
-set dbaddr=127.0.0.1
+set dbaddr="127.0.0.1"
 
 ::数据库账号
 set dbuser="sa"
@@ -40,8 +40,8 @@ set dbport=3306
 set dbkeyys=.
 ::set dbkeyys="d:\xygl\fda\laundry.btf"
 
-::需要过滤库的关键字,模糊匹配,不分大小写,可以是多个,以[,]分割;为 [.] 不进行筛选.（single此项失效）
-set dbkeyns=.
+::需要过滤库的关键字,模糊匹配,不分大小写,可以是多个,以[,]分割;为 [!@#$%] 不进行筛选.（single此项失效）
+set dbkeyns=!@#
 
 ::还原模式时库文件放置路径,仅 mssql 时有效,默认存放在安装目录
 set msFilePath=
@@ -119,7 +119,7 @@ echo 初始化配置.
 
 ::测试mssql命令行是否可用。
 if %dbtype% equ 0 (
-	for /f "delims= skip=2 eol=(" %%a in ('sqlcmd -s %dbaddr% -U%dbuser% -P%dbpw% -Q "select name from sysdatabases"2^>nul') do (
+	for /f "delims= skip=2 eol=(" %%a in ('sqlcmd -S %dbaddr% -U%dbuser% -P%dbpw% -Q "select name from sysdatabases"2^>nul') do (
 		set test=%%a
 	)
 )
@@ -226,12 +226,12 @@ goto :eof
 
 ::mssql 备份
 :getMssqlBackup
-for /f "eol=(" %%a in ('sqlcmd -s %dbaddr% -U %dbuser% -P %dbpw% -Q "select name from sysdatabases"^|findstr /i /r %dbkeyy%^|findstr /i /v /r %dbkeyn%') do (
+for /f "eol=(" %%a in ('sqlcmd -S %dbaddr% -U %dbuser% -P %dbpw% -Q "select name from sysdatabases"^|findstr /i /r %dbkeyy%^|findstr /i /v /r %dbkeyn%') do (
 	echo 处理数据库: [%%a]
 	echo 处理数据库: [%%a] >>%pro%
 	md %fs%\%%a\ >>%pro% 2>&1
 	(echo backup database %%a to disk = '%fs%\%%a\%back_timename%_%%a.%msext%')>%temp%\n.sql
-	sqlcmd -s %dbaddr% -U %dbuser% -P %dbpw% -i %temp%\n.sql >>%pro% 2>&1
+	sqlcmd -S %dbaddr% -U %dbuser% -P %dbpw% -i %temp%\n.sql >>%pro% 2>&1
 	echo [ok] Backup databases -- full [%%a]
 )
 goto :eof
@@ -295,7 +295,7 @@ if "!logicState!"=="False" (
 )
 
 echo\
-sqlcmd -s %dbaddr% -U %dbuser% -P %dbpw% -i %temp%\n.sql >%temp%\tmp.error&&type %temp%\tmp.error&&type %temp%\tmp.error >>%pro% 2>&1
+sqlcmd -S %dbaddr% -U %dbuser% -P %dbpw% -i %temp%\n.sql >%temp%\tmp.error&&type %temp%\tmp.error&&type %temp%\tmp.error >>%pro% 2>&1
 echo\
 
 
