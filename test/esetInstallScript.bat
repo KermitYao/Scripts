@@ -1,6 +1,9 @@
 1>1/* ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-cls
-@rem version 1.0.0
+::* 2021-05-25 脚本完成
+::* 2021-05-27 增加选择和命令行选项可以无视大小写
+::* 2021-06-03 增加对非sp1 的win7系统(nt 6.1.7600)的检测;更新部分描述
+
+@rem version 1.0.1
 @echo off
 setlocal enabledelayedexpansion
 
@@ -83,7 +86,8 @@ if %absStatus%==False (
 ) else (
 
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题。
-	rem Agent 下载地址
+	rem 所谓unc地址可以理解为文件的路径， 可以是相对路径或者绝对路径，都可以使用。
+	rem Agent unc地址
 	set path_agent_x86=Agent\agent_x86_v8.0.msi
 	set path_agent_x64=Agent\agent_x64_v8.0.msi
 
@@ -96,14 +100,14 @@ if %absStatus%==False (
 
 	rem -------------------
 
-	rem PC Product 下载地址
+	rem PC Product unc地址
 	set path_eea_v6.5_x86=PC\eea_nt32_chs_v6.5.msi
 	set path_eea_v6.5_x64=PC\eea_nt64_chs_v6.5.msi
 
 	set path_eea_late_x86=PC\eea_nt32_v8.0.msi
 	set path_eea_late_x64=PC\eea_nt64_v8.0.msi
 
-	rem SERVER Product 下载地址
+	rem SERVER Product unc地址
 	set path_efsw_v6.5_x86=Server\efsw_nt32_chs_v6.5.msi
 	set path_efsw_v6.5_x64=Server\efsw_nt64_chs_v6.5.msi
 
@@ -115,7 +119,7 @@ if %absStatus%==False (
 	set params_product=
 	rem -------------------
 
-	rem 补丁文件 下载地址
+	rem 补丁文件 unc地址
 	set path_hotfix_kb4474419_x86=Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
 	set path_hotfix_kb4474419_x64=Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
 	set path_hotfix_kb4490628_x86=Tools\sha2cab\Windows6.1-KB4490628-x86.cab
@@ -277,42 +281,47 @@ if "#%argsHotfix%"=="#True" (
 			call :writeLog WARNING installHotfix "当前系统版本不支持安装补丁" True True
 			set exitCode=5
 		) else (
-			call :getSysArch
-			if "#!sysArch%!"=="#x64" (
-					set hotfix_kb4490628=%path_hotfix_kb4490628_x64%
-					set hotfix_kb4474419=%path_hotfix_kb4474419_x64%
+			if "#!ntVer!"=="#6.1.7600" (
+				call :writeLog WARNING installHotfix "当前系统版本不支持此安装补丁,您需要将系统先升级到 Windowns 7 Service Pack 1 才能继续安装此补丁" True True
+				set exitCode=5
 			) else (
-					set hotfix_kb4490628=%path_hotfix_kb4490628_x86%
-					set hotfix_kb4474419=%path_hotfix_kb4474419_x86%
-			)
-
-			call :getHotfixStatus kb4490628 kb4474419
-			for %%a in (kb4490628 kb4474419) do (
-				if "#!%%a!"=="#True" (
-					call :writeLog INFO installHotfix "补丁 [%%a] 已经存在,无需重复安装" True True
-					set exitCode=0
+				call :getSysArch
+				if "#!sysArch%!"=="#x64" (
+						set hotfix_kb4490628=%path_hotfix_kb4490628_x64%
+						set hotfix_kb4474419=%path_hotfix_kb4474419_x64%
 				) else (
-					if "#%absStatus%"=="#True" (
-						call :connectShare "!hotfix_%%a!" %shareUser% %sharePwd%
-						call :writeLog DEBUG connectShare "补丁 %%a 共享连接状态是： [!returnValue!]" False True 
+						set hotfix_kb4490628=%path_hotfix_kb4490628_x86%
+						set hotfix_kb4474419=%path_hotfix_kb4474419_x86%
+				)
+
+				call :getHotfixStatus kb4490628 kb4474419
+				for %%a in (kb4490628 kb4474419) do (
+					if "#!%%a!"=="#True" (
+						call :writeLog INFO installHotfix "补丁 [%%a] 已经存在,无需重复安装" True True
+						set exitCode=0
 					) else (
-						call :writeLog INFO downloadHotfix "开始下载补丁: [%%a]" True True
-						call :downFile "%~f0" "!hotfix_%%a!" "%path_Temp%\hotfix_%%a.cab"
-						call :writeLog INFO downloadHotfix "补丁 [[%%a]] 下载状态是: [!returnValue!]" True True 
-						set hotfix_%%a="%path_Temp%\hotfix_%%a.cab"
-					)
-					if not exist "!hotfix_%%a!" (
-						call :writeLog ERROR installHotfix "未找到可使用的路径:[!hotfix_%%a!]" True True
-					) else (
-						call :writeLog INFO installHotfix "开始安装补丁: [%%a]" True True
-						call :hotFixInstall "!hotfix_%%a!" "%params_hotfix%"
-						call :writeLog DEBUG installHotfix "hotfix [%%a] 安装退出码:[!errorlevel!]" False True
-						call :writeLog INFO installHotfix "这个补丁 [%%a] 安装状态是:[!returnValue!]" True True
-						if "#!dismExitCode!"=="#3010" (call :writeLog WARNING installHotfix "这个补丁 [%%a] 安装状态是:[挂起],你需要重启才能进行后续安装" True True)
+						if "#%absStatus%"=="#True" (
+							call :connectShare "!hotfix_%%a!" %shareUser% %sharePwd%
+							call :writeLog DEBUG connectShare "补丁 %%a 共享连接状态是： [!returnValue!]" False True 
+						) else (
+							call :writeLog INFO downloadHotfix "开始下载补丁: [%%a]" True True
+							call :downFile "%~f0" "!hotfix_%%a!" "%path_Temp%\hotfix_%%a.cab"
+							call :writeLog INFO downloadHotfix "补丁 [[%%a]] 下载状态是: [!returnValue!]" True True 
+							set hotfix_%%a="%path_Temp%\hotfix_%%a.cab"
+						)
+						if not exist "!hotfix_%%a!" (
+							call :writeLog ERROR installHotfix "未找到可使用的路径:[!hotfix_%%a!]" True True
+						) else (
+							call :writeLog INFO installHotfix "开始安装补丁: [%%a]" True True
+							call :hotFixInstall "!hotfix_%%a!" "%params_hotfix%"
+							call :writeLog DEBUG installHotfix "hotfix [%%a] 安装退出码:[!errorlevel!]" False True
+							call :writeLog INFO installHotfix "这个补丁 [%%a] 安装状态是:[!returnValue!]" True True
+							if "#!dismExitCode!"=="#3010" (call :writeLog WARNING installHotfix "这个补丁 [%%a] 安装状态是:[挂起],你需要重启才能进行后续安装" True True)
+						)
 					)
 				)
+				if "#!returnValue!"=="#False" (set exitCode=5) else (set exitCode=0)
 			)
-			if "#!returnValue!"=="#False" (set exitCode=5) else (set exitCode=0)
 		)
 	) else (
 		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
@@ -473,7 +482,7 @@ if not "#%argsStatus%"=="#True" (
 )
 
 
-rem exitCode: 正常:0,标准命令行报错:1,系统版本错误:2,系统平台错误:3,无法获取补丁包:4,有补丁安装失败或挂起:5,安装Agent失败:6,卸载agent失败:7,卸载product失败:8,进入安装模式失败:9,退出安装模式失败:10,安装product失败:11,权限不足错误:96,参数错误:97,无法解析参数:98,未知错误:99
+rem exitCode: 正常:0,标准命令行报错:1,系统版本错误:2,系统平台错误:3,无法获取补丁包:4,有补丁安装失败或挂起:5,安装Agent失败:6,卸载agent失败:7,卸载product失败:8,进入安装模式失败:9,退出安装模式失败:10,安装product失败:11,Win7系统不是sp1:12，权限不足错误:96,参数错误:97,无法解析参数:98,未知错误:99
 :exitScript
  if %DEBUG%==True call :debug
 
@@ -644,7 +653,7 @@ echo.
 echo.
 set /p input=请选择:(a^|o^|p^|n^|d^|e^|x^|g^|s^|h):
 for %%a in (a o p g n d e x s h) do (
-	if "#!input!"=="#%%a" (
+	if /i "#!input!"=="#%%a" (
 		cls
 		echo.
 		set guiArgsStatus=-%%a -u
