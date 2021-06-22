@@ -36,7 +36,7 @@ rem -------------------
 
 rem 如果路径为UNC或可访问的绝对路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
 rem 是否为UNC路径或绝对 True|False
-set absStatus=True
+set absStatus=False
 rem 如果是共享目录可以设置账号密码，来首先建立ipc$连接，然后在使用UNC路径方式调用。如果为空则不进行IPC$连接。
 set shareUser="kermit"
 set sharePwd="5698"
@@ -45,11 +45,11 @@ if %absStatus%==False (
 
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题;同时 "%" 在脚本里有特殊意义，如果网址内包含空格需要将 "%" 进行转义
 	rem Agent 下载地址
-	set path_agent_x86=http://192.168.30.43:8080/_ShareFile/ESET/EEA/agent_x86_v8.0.msi
-	set path_agent_x64=http://192.168.30.43:8080/_ShareFile/ESET/EEA/agen t_x64_v8.0.msi
+	set path_agent_x86=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x32_v8.0.msi
+	set path_agent_x64=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x64_v8.0.msi
 
 	rem Agent 配置文件
-	set path_agent_config=http://192.168.30.43:8080/_ShareFile/ESET/EEA/install_config.ini
+	set path_agent_config=http://192.168.30.43:8080/ESET/CLIENT/Agent/install_config.ini
 
 	rem 追加参数,不需要则保持为空
 	::set params_agent=password=eset1234.
@@ -58,18 +58,18 @@ if %absStatus%==False (
 	rem -------------------
 
 	rem PC Product 下载地址
-	set path_eea_v6.5_x86=http://192.168.30.43:8080/_ShareFile/ESET/EEA/eea_nt32_v6.5.msi
-	set path_eea_v6.5_x64=http://192.168.30.43:8080/_ShareFile/ESET/EEA/eea_nt64_6.5.msi
+	set path_eea_v6.5_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
+	set path_eea_v6.5_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
 
-	set path_eea_late_x86=http://192.168.30.43:8080/_ShareFile/ESET/EEA/eea_nt32_v8.0.msi
-	set path_eea_late_x64=http://192.168.30.43:8080/_ShareFile/ESET/EEA/ee a_nt64_v8.0.msi
+	set path_eea_late_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_v8.0.msi
+	set path_eea_late_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_v8.0.msi
 
 	rem SERVER Product 下载地址
-	set path_efsw_v6.5_x86=http://192.168.30.43:8080/_ShareFile/ESET/EEA/efsw_nt32_chs_v6.5.msi
-	set path_efsw_v6.5_x64=http://192.168.30.43:8080/_ShareFile/ESET/EEA/efsw_nt64_chs_v6.5.msi
+	set path_efsw_v6.5_x86=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
+	set path_efsw_v6.5_x64=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
 	set path_efsw_late_x86=
-	set path_efsw_late_x64=http://192.168.30.43:8080/_ShareFile/ESET/EEA/efsw_nt64_v7.3.msi
+	set path_efsw_late_x64=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt64_v8.0.msi
 
 	rem 追加参数,不需要则保持为空
 	::set params_eea=password=eset1234.
@@ -77,22 +77,22 @@ if %absStatus%==False (
 	rem -------------------
 
 	rem 补丁文件 下载地址
-	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/_ShareFile/ESET/Tools/SHA2CAB/Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/_ShareFile/ESET/Tools/SHA2CAB/Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
 
-	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/_ShareFile/ESET/Tools/SHA2CAB/Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/_ShareFile/ESET/Tools/SHA2CAB/Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
 
 ) else (
 
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题。
 	rem 所谓unc地址可以理解为文件的路径， 可以是相对路径或者绝对路径，都可以使用。
 	rem Agent unc地址
-	set path_agent_x86=Agent\agent_x86_v8.0.msi
-	set path_agent_x64=Agent\agent_x64_v8.0.msi
+	set path_agent_x86=CLIENT\Agent\agent_x86_v8.0.msi
+	set path_agent_x64=CLIENT\Agent\agent_x64_v8.0.msi
 
 	rem Agent 配置文件
-	set path_agent_config=Agent\install_config.ini
+	set path_agent_config=CLIENT\Agent\install_config.ini
 
 	rem 追加参数,不需要则保持为空
 	::set params_agent=password=eset1234.
@@ -101,18 +101,18 @@ if %absStatus%==False (
 	rem -------------------
 
 	rem PC Product unc地址
-	set path_eea_v6.5_x86=PC\eea_nt32_chs_v6.5.msi
-	set path_eea_v6.5_x64=PC\eea_nt64_chs_v6.5.msi
+	set path_eea_v6.5_x86=CLIENT\PC\eea_nt32_chs_v6.5.msi
+	set path_eea_v6.5_x64=CLIENT\PC\eea_nt64_chs_v6.5.msi
 
-	set path_eea_late_x86=PC\eea_nt32_v8.0.msi
-	set path_eea_late_x64=PC\eea_nt64_v8.0.msi
+	set path_eea_late_x86=CLIENT\PC\eea_nt32_v8.0.msi
+	set path_eea_late_x64=CLIENT\PC\eea_nt64_v8.0.msi
 
 	rem SERVER Product unc地址
-	set path_efsw_v6.5_x86=Server\efsw_nt32_chs_v6.5.msi
-	set path_efsw_v6.5_x64=Server\efsw_nt64_chs_v6.5.msi
+	set path_efsw_v6.5_x86=CLIENT\Server\efsw_nt32_chs_v6.5.msi
+	set path_efsw_v6.5_x64=CLIENT\Server\efsw_nt64_chs_v6.5.msi
 
 	set path_efsw_late_x86=
-	set path_efsw_late_x64=Server\efsw_nt64_v8.0.msi
+	set path_efsw_late_x64=CLIENT\Server\efsw_nt64_v8.0.msi
 
 	rem 追加参数,不需要则保持为空
 	::set params_eea=password=eset1234.
@@ -120,10 +120,10 @@ if %absStatus%==False (
 	rem -------------------
 
 	rem 补丁文件 unc地址
-	set path_hotfix_kb4474419_x86=Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
-	set path_hotfix_kb4490628_x86=Tools\sha2cab\Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=Tools\sha2cab\Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4474419_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4490628_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4490628-x64.cab
 )
 
 rem -------------------
@@ -304,7 +304,7 @@ if "#%argsHotfix%"=="#True" (
 							call :connectShare "!hotfix_%%a!" %shareUser% %sharePwd%
 							call :writeLog DEBUG connectShare "补丁 %%a 共享连接状态是： [!returnValue!]" False True 
 						) else (
-							call :writeLog INFO downloadHotfix "开始下载补丁: [%%a]" True True
+							call :writeLog INFO downloadHotfix "开始下载补丁: [!hotfix_%%a!]" True True
 							call :downFile "%~f0" "!hotfix_%%a!" "%path_Temp%\hotfix_%%a.cab"
 							call :writeLog INFO downloadHotfix "补丁 [[%%a]] 下载状态是: [!returnValue!]" True True 
 							set hotfix_%%a="%path_Temp%\hotfix_%%a.cab"

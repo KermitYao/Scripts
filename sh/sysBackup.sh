@@ -1,6 +1,6 @@
 #2020-08-22
 #Code by kermit@Arch/Linux
-#This is a script for backing up the system
+#The script for backing up the system
 
 excludeFiles='/dev /proc /mnt /tmp /lost+found'
 backupPath='/'
