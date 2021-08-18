@@ -30,8 +30,8 @@ rem 设置初始变量
 
 rem 已安装的软件,小于此本版则进行覆盖安装,版本号只计算两位，超过两位数会计算出错。
 set version_Agent=8.0
-set version_Product_eea=8.0
-set version_Product_efsw=7.3
+set version_Product_eea=8.1
+set version_Product_efsw=8.0
 rem -------------------
 
 rem 如果路径为UNC或可访问的绝对路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
@@ -45,8 +45,8 @@ if %absStatus%==False (
 
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题;同时 "%" 在脚本里有特殊意义，如果网址内包含空格需要将 "%" 进行转义
 	rem Agent 下载地址
-	set path_agent_x86=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x32_v8.0.msi
-	set path_agent_x64=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x64_v8.0.msi
+	set path_agent_x86=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x32_v8.1.msi
+	set path_agent_x64=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x64_v8.1.msi
 
 	rem Agent 配置文件
 	set path_agent_config=http://192.168.30.43:8080/ESET/CLIENT/Agent/install_config.ini
@@ -61,8 +61,8 @@ if %absStatus%==False (
 	set path_eea_v6.5_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
 	set path_eea_v6.5_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
 
-	set path_eea_late_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_v8.0.msi
-	set path_eea_late_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_v8.0.msi
+	set path_eea_late_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_v8.1.msi
+	set path_eea_late_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_v8.1.msi
 
 	rem SERVER Product 下载地址
 	set path_efsw_v6.5_x86=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
@@ -84,12 +84,12 @@ if %absStatus%==False (
 	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
 
 ) else (
-
+	push %~0dp
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题。
 	rem 所谓unc地址可以理解为文件的路径， 可以是相对路径或者绝对路径，都可以使用。
 	rem Agent unc地址
-	set path_agent_x86=CLIENT\Agent\agent_x86_v8.0.msi
-	set path_agent_x64=CLIENT\Agent\agent_x64_v8.0.msi
+	set path_agent_x86=CLIENT\Agent\agent_x86_v8.1.msi
+	set path_agent_x64=CLIENT\Agent\agent_x64_v8.1.msi
 
 	rem Agent 配置文件
 	set path_agent_config=CLIENT\Agent\install_config.ini
@@ -104,8 +104,8 @@ if %absStatus%==False (
 	set path_eea_v6.5_x86=CLIENT\PC\eea_nt32_chs_v6.5.msi
 	set path_eea_v6.5_x64=CLIENT\PC\eea_nt64_chs_v6.5.msi
 
-	set path_eea_late_x86=CLIENT\PC\eea_nt32_v8.0.msi
-	set path_eea_late_x64=CLIENT\PC\eea_nt64_v8.0.msi
+	set path_eea_late_x86=CLIENT\PC\eea_nt32_v8.1.msi
+	set path_eea_late_x64=CLIENT\PC\eea_nt64_v8.1.msi
 
 	rem SERVER Product unc地址
 	set path_efsw_v6.5_x86=CLIENT\Server\efsw_nt32_chs_v6.5.msi
@@ -432,7 +432,7 @@ if "#%argsProduct%"=="#True" (
 				call :connectShare "!path_product!" %shareUser% %sharePwd%
 				call :writeLog DEBUG connectShareConnect "Product 共享连接状态是: [!returnValue!]" False True 
 			) else (
-				call :writeLog INFO downloadProduct "开始下载安全产品: [Product.msi]" True True
+				call :writeLog INFO downloadProduct "开始下载安全产品: [!path_product!]" True True
 				call :downFile "%~f0" "!path_product!" "%path_Temp%\product.msi"
 				call :writeLog INFO downloadProduct "Product.msi 下载状态是: [!returnValue!]" True True 
 				set path_product=%path_Temp%\product.msi
@@ -610,10 +610,10 @@ echo  -e	--entrySafeMode	[optional] Entry safe mode
 echo  -x	--exitSafeMode	[optional] Exit safe mode
 echo  -s,	--status	[optional] Check status
 echo  -l,	--log		[optional] Disable log
-echo  -r,	--remove		[optional] Remove downloaded files
+echo  -r,	--remove	[optional] Remove downloaded files
 echo  -u,	--gui		[optional] Like GUI show
 echo.
-echo		Example:%~nx0 -o --agent -l --del
+echo		Example:%~nx0 -o --agent -l --remove
 echo\
 echo              Code by Kermit Yao @ Windows 10, 2021-04-5 ,kermit.yao@outlook.com
 goto :eof
