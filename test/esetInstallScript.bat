@@ -2,8 +2,10 @@
 ::* 2021-05-25 脚本完成
 ::* 2021-05-27 增加选择和命令行选项可以无视大小写
 ::* 2021-06-03 增加对非sp1 的win7系统(nt 6.1.7600)的检测;更新部分描述
+::* 2021-08-24 增加在安装Server2008 系统安全产品时自动添加网络模块；将 find 替换为 findstr 以修复某些情况下,报错的问题； 在使用本地安装文件时,将首先中转到脚本所在目录,再执行后续操作。
 
-@rem version 1.0.1
+
+@rem version 1.1.1
 @echo off
 setlocal enabledelayedexpansion
 
@@ -29,7 +31,7 @@ rem 设置初始变量
 :getPackagePatch
 
 rem 已安装的软件,小于此本版则进行覆盖安装,版本号只计算两位，超过两位数会计算出错。
-set version_Agent=8.0
+set version_Agent=8.1
 set version_Product_eea=8.1
 set version_Product_efsw=8.0
 rem -------------------
@@ -45,8 +47,8 @@ if %absStatus%==False (
 
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题;同时 "%" 在脚本里有特殊意义，如果网址内包含空格需要将 "%" 进行转义
 	rem Agent 下载地址
-	set path_agent_x86=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x32_v8.1.msi
-	set path_agent_x64=http://192.168.30.43:8080/ESET/CLIENT/Agent/agent_x64_v8.1.msi
+	set path_agent_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Agent/agent_x86_v8.1.msi
+	set path_agent_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Agent/agent_x64_v8.1.msi
 
 	rem Agent 配置文件
 	set path_agent_config=http://192.168.30.43:8080/ESET/CLIENT/Agent/install_config.ini
@@ -58,18 +60,18 @@ if %absStatus%==False (
 	rem -------------------
 
 	rem PC Product 下载地址
-	set path_eea_v6.5_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
-	set path_eea_v6.5_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
+	set path_eea_v6.5_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
+	set path_eea_v6.5_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt64_chs_6.5.msi
 
-	set path_eea_late_x86=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt32_v8.1.msi
-	set path_eea_late_x64=http://192.168.30.43:8080/ESET/CLIENT/PC/eea_nt64_v8.1.msi
+	set path_eea_late_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt32_v8.1.msi
+	set path_eea_late_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt64_v8.1.msi
 
 	rem SERVER Product 下载地址
-	set path_efsw_v6.5_x86=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
-	set path_efsw_v6.5_x64=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
+	set path_efsw_v6.5_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
+	set path_efsw_v6.5_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
-	set path_efsw_late_x86=
-	set path_efsw_late_x64=http://192.168.30.43:8080/ESET/CLIENT/Server/efsw_nt64_v8.0.msi
+	set path_efsw_late_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt32_v8.0.msi
+	set path_efsw_late_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt64_v8.0.msi
 
 	rem 追加参数,不需要则保持为空
 	::set params_eea=password=eset1234.
@@ -77,14 +79,14 @@ if %absStatus%==False (
 	rem -------------------
 
 	rem 补丁文件 下载地址
-	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
 
-	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
 
 ) else (
-	push %~0dp
+	pushd "%~dp0"
 	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题。
 	rem 所谓unc地址可以理解为文件的路径， 可以是相对路径或者绝对路径，都可以使用。
 	rem Agent unc地址
@@ -129,7 +131,7 @@ if %absStatus%==False (
 rem -------------------
 
 rem 临时文件和日志存放路径
-set path_Temp=%temp%\ESET_TEMP_INSTALL
+set path_Temp=%temp%\esetInstall
 
 rem 安装 cab 的默认参数
 set params_hotfix=/norestart
@@ -165,6 +167,9 @@ if "#%argsGui%"=="#True" (
 	set params_msiexec=/qn /norestart
 )
 
+rem 如果系统是 Server 2008 则添加参数,以自动安装网络模块
+call :getSysVer
+if "#!sysVersion!"=="#WindowsServer2008" set "params_product=%params_product% ADDLOCAL=ALL"
 
 rem 关闭日志打印
 if "#%argsLog%"=="#True" (
@@ -526,7 +531,7 @@ if "#%~1"=="#entry" (
 ) 
 
 if "#%~1"=="#exit" (
-	bcdedit|find "safeboot" >nul && set tmpStatus=True
+	bcdedit|findstr /i /c:"safeboot" >nul && set tmpStatus=True
 	if "#!tmpStatus!"=="#True" (
 		bcdedit /deletevalue {default} safeboot >nul
 	) else (
@@ -535,7 +540,7 @@ if "#%~1"=="#exit" (
 )
 
 if "#%~1"=="#status" (
-	bcdedit|find "safeboot" >nul && set safeModeStatus=True
+	bcdedit|findstr /i /c:"safeboot" >nul && set safeModeStatus=True
 )
 
 if !errorlevel! equ 0 (
@@ -555,8 +560,8 @@ set  sysType=PC
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName') do (
 	for %%x in (%sysVer%) do (
 		set tm=%%~x
-		echo %%b|find /i %%x>nul&&set  sysVersion=!tm: =!
-		echo %%b|find /i "Server">nul&&set sysType=Server
+		echo %%b|findstr /i /c:%%x >nul&&set  sysVersion=!tm: =!
+		echo %%b|findstr /i /c:"Server" >nul&&set sysType=Server
 	)
 )
 
@@ -917,7 +922,7 @@ for %%a in (%logLevelList%) do (
 
 goto :eof
 
-rem 获取软件版本; 传入参数: %1 =Product | Agent ; 例：call :getVersion Product; 返回值:returnValue=版本号 | Null,如果产品存在以下变量会被赋值：productCode,productName,productVersion,productDir
+rem 获取软件版本; 传入参数: %1 =Product | Agent ; 例：call :getVersion Product; 返回值:returnValue=版本号 | Null,如果产品存在则以下变量会被赋值：productCode,productName,productVersion,productDir
 :getVersion
 set productVersion=
 set productName=
@@ -931,7 +936,7 @@ if /i "#%~1"=="#Product" (
 	)
 ) else (
 	set keyValue="HKEY_LOCAL_MACHINE\SOFTWARE\ESET\RemoteAdministrator\Agent\CurrentVersion\Info"
-	for /f "delims={} tokens=2" %%a in ('wmic product list 2^>nul^| find /i "ESET Management Agent"') do (
+	for /f "delims={} tokens=2" %%a in ('wmic product list 2^>nul^| findstr /i /c:"ESET Management Agent"') do (
 		set "productCode={%%a}"
 	)
 )
