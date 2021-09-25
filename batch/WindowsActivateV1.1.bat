@@ -1,4 +1,4 @@
-rem Version is v1.1 , The code by kermit.yao to writen in Windows 10 system.
+@rem Version is v1.1 , The code by kermit.yao to writen in Windows 10 system.
 @echo off
 setlocal enabledelayedexpansion
 title Windows ÏµÁÐ¼¤»î.

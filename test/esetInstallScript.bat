@@ -1,16 +1,58 @@
 1>1/* ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::* 2021-05-25 脚本完成
-::* 2021-05-27 增加选择和命令行选项可以无视大小写
-::* 2021-06-03 增加对非sp1 的win7系统(nt 6.1.7600)的检测;更新部分描述
-::* 2021-08-24 增加在安装Server2008 系统安全产品时自动添加网络模块；将 find 替换为 findstr 以修复某些情况下,报错的问题； 在使用本地安装文件时,将首先中转到脚本所在目录,再执行后续操作。
+::* 2021-05-27 增加GUI选择和命令行选项可以无视大小写
+::* 2021-06-03 增加对非sp1系统(nt 6.1.7600)的检测;更新部分描述
+::* 2021-08-24 1.增加在安装Server2008 系统安全产品时自动添加网络模块；2.将 find 替换为 findstr 以修复某些情况下,报错的问题； 3.在使用本地安装文件时,将首先跳转到脚本所在目录,再执行后续操作。
+::* 2021-09-24 1.新增eset 安装事件的抓取模块;2.新增强制略过检查模块;3.新增可以手动选择安装老版本模块;4.新增自动安装时,安装完补丁未重启时,现在将略过后续安装;5.修复自动安装6.5失败的问题;6.修复gui选择错误时,不会出现报错提示;7.增加描述信息
+
+goto :begin
+::-----readme-----
+
+快速使用:
+	修改90行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
 
 
-@rem version 1.1.1
+概述:
+	此脚本目的为简化用户安装时的过程,能实现一件自动化安装补丁和eset产品,以及对于已经安装的计算机自动升级或跳过,同时增加了一些排错常用的的功能,用于帮助客户快速方便的诊断问题根源。
+
+功能:
+	1.自动根据不同系统,不同系统平台,不同软件版本,来安装和升级补丁、AGENT、杀毒产品
+	2.可以手动选择需要安装和卸载的产品
+	3.进入和退出安全模式
+	4.读取eset产品安装时,写入系统事件日志,方便出现安装错误时,定位问题
+	5.读取系统状态用于判断问题
+	6.可以根据需求自定义命令行参数，达到双击脚本自动安装的目的,(通过 DEFAULT_ARGS 参数实现)
+	7.默认双击打开脚本会出现一个选择界面（此界面的操作会有一定的交互能力）
+	8.支持命令行参数,以便预控推送时静默安装
+
+使用方法：
+	1.需要提前预设每个版本文件的下载地址或者本地的文件路径(可以使用相对路径,这样可以放到u盘里安装)
+		具体是通过下载安装，或是本地文件安装，可以通过一个参数控制 absStatus=True 
+	2.可以使用参数 -h | -help 来查看支持的参数
+	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
+	4.
+		set version_Agent=8.1
+		set version_Product_eea=8.1
+		set version_Product_efsw=8.0
+		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
+		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
+	5.本质上软件的安装是通过调用 msiexec 实现的,所以如果想自定义参数可以通过此参数实现: set "params_agent= password=eset1234." ,会指定一个密码,当然也可以用别的参数,比如指定安装时的语言，可以写入多个参数，以空格隔开即可
+	6. 这个参数 set path_agent_config 指定的文件,来自于gpo配置文件,这个文件和agent安装程序放在同一个目录,安装的时候就可以不用手动填写证书、密码等之类的东西，可以通过eset控制台生成
+	7.脚本的运行需要管理员权限
+	8.命令行参数不区分大小写
+	9.安装的时候脚本会自动检测需要下载的对应版本,不会多下载的,所以如果没有 xp 系统,完全可以不填写 6.5 的文件下载地址;这样并不会影响使用
+	10.想到了再写
+
+:begin
+::-----readme-----
+
+cls
+@rem version 1.1.2
 @echo off
 setlocal enabledelayedexpansion
 
 ::----------------------------------
-rem 开启此参数，cmd指定参数和gui选择将会失效;
+rem 开启此参数，命令行指定参数和gui选择将会失效;
 rem 相当于强制使用命令行参数；
 rem 如果不需要保持为空即可
 rem 使用方法 ： SET DEFAULT=-o --agent -l --remove -, 与正常的cmd参数保持一致
@@ -23,75 +65,98 @@ set DEBUG=False
 set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 rem 解析参数列表
-set argsList=argsHelp argsAll argsHotfix argsProduct argsAgent argsUndoAgent argsUndoProduct argsEntrySafeMode argsExitSafeMode argsSysStatus argsLog argsRemove argsGui
+set argsList=argsHelp argsAll argsEarly argsHotfix argsProduct argsAgent argsUndoAgent argsUndoProduct argsEntrySafeMode argsExitSafeMode argsSysStatus argsEsetLog argsForce argsLog argsRemove argsGui
 ::----------------------------------
 
 rem ----------- init -----------
 rem 设置初始变量
 :getPackagePatch
 
-rem 已安装的软件,小于此本版则进行覆盖安装,版本号只计算两位，超过两位数会计算出错。
+rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
+rem 版本号只计算两位，超过两位数会计算出错。
 set version_Agent=8.1
 set version_Product_eea=8.1
 set version_Product_efsw=8.0
 rem -------------------
 
-rem 如果路径为UNC或可访问的绝对路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
-rem 是否为UNC路径或绝对 True|False
+rem 如果路径为UNC或可访问路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
+rem 是否为UNC路径或绝对可访问的路径
+rem 可用参数: True|False
 set absStatus=False
 rem 如果是共享目录可以设置账号密码，来首先建立ipc$连接，然后在使用UNC路径方式调用。如果为空则不进行IPC$连接。
-set shareUser="kermit"
-set sharePwd="5698"
+set shareUser=
+set sharePwd=
 
+rem 此处设置用于下载文件的地址
 if %absStatus%==False (
-
-	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题;同时 "%" 在脚本里有特殊意义，如果网址内包含空格需要将 "%" 进行转义
+	rem --------agent--------
+	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题;同时 "%" 在脚本里有特殊意义，如果网址内包含空格需要将 "%" 进行双写转义
 	rem Agent 下载地址
-	set path_agent_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Agent/agent_x86_v8.1.msi
-	set path_agent_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Agent/agent_x64_v8.1.msi
+
+	rem 老系统专用agent,建议使用 v8.0
+	set path_agent_old_x86=http://192.168.30.43:8080/CLIENT/Agent/agent_x86_v8.0.msi
+	set path_agent_old_x64=http://192.168.30.43:8080/CLIENT/Agent/agent_x64_v8.0.msi
+
+	rem 最新版本agent,建议使用最新版本
+	set path_agent_late_x86=http://192.168.30.43:8080/CLIENT/Agent/agent_x86_v8.1.msi
+	set path_agent_late_x64=http://192.168.30.43:8080/CLIENT/Agent/agent_x64_v8.1.msi
 
 	rem Agent 配置文件
-	set path_agent_config=http://192.168.30.43:8080/ESET/CLIENT/Agent/install_config.ini
+	set path_agent_config=http://192.168.30.43:8080/CLIENT/Agent/install_config.ini
 
 	rem 追加参数,不需要则保持为空
 	::set params_agent=password=eset1234.
 	set params_agent=
+	rem --------agent--------
 
-	rem -------------------
-
+	rem --------PC product--------
 	rem PC Product 下载地址
-	set path_eea_v6.5_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
-	set path_eea_v6.5_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt64_chs_6.5.msi
+	rem 老系统专用杀毒软件,建议使用 v6.5
+	set path_pc_old_x86=http://192.168.30.43:8080/CLIENT/PC/eea_nt32_chs_v6.5.msi
+	set path_pc_old_x64=http://192.168.30.43:8080/CLIENT/PC/eea_nt64_chs_v6.5.msi
 
-	set path_eea_late_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt32_v8.1.msi
-	set path_eea_late_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/PC/eea_nt64_v8.1.msi
+	rem 建议使用最新版本
+	set path_pc_late_x86=http://192.168.30.43:8080/CLIENT/PC/eea_nt32_v8.1.msi
+	set path_pc_late_x64=http://192.168.30.43:8080/CLIENT/PC/eea_nt64_v8.1.msi
+	rem --------PC product--------
 
+	rem --------Server product--------
 	rem SERVER Product 下载地址
-	set path_efsw_v6.5_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
-	set path_efsw_v6.5_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
+	rem 老系统专用杀毒软件,建议使用 v6.5
+	set path_server_old_x86=http://192.168.30.43:8080/CLIENT/Server/efsw_nt32_chs_v6.5.msi
+	set path_server_old_x64=http://192.168.30.43:8080/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
-	set path_efsw_late_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt32_v8.0.msi
-	set path_efsw_late_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Server/efsw_nt64_v8.0.msi
+	rem 建议使用最新版本
+	set path_server_late_x86=http://192.168.30.43:8080/CLIENT/Server/efsw_nt32_v8.0.msi
+	set path_server_late_x64=http://192.168.30.43:8080/CLIENT/Server/efsw_nt64_v8.0.msi
+	rem --------Server product--------
 
-	rem 追加参数,不需要则保持为空
+	rem 追加参数,不需要则保持为空,PC 和 SERVER 版本共用同一个追加参数
 	::set params_eea=password=eset1234.
 	set params_product=
-	rem -------------------
 
+	rem --------patch--------
 	rem 补丁文件 下载地址
-	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
 
-	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/esetFiles/esetServerFiles/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
+	rem --------patch--------
 
 ) else (
 	pushd "%~dp0"
-	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题。
-	rem 所谓unc地址可以理解为文件的路径， 可以是相对路径或者绝对路径，都可以使用。
-	rem Agent unc地址
-	set path_agent_x86=CLIENT\Agent\agent_x86_v8.1.msi
-	set path_agent_x64=CLIENT\Agent\agent_x64_v8.1.msi
+	rem --------agent--------
+	rem 所有的路径不要携带 “” 引号，后续会自动处理引号问题;同时 "%" 在脚本里有特殊意义，如果网址内包含空格需要将 "%" 进行双写转义
+	rem Agent 文件路径
+
+	rem 建议使用 v8.0
+	set path_agent_old_x86=CLIENT\Agent\agent_x86_v8.0.msi
+	set path_agent_old_x64=CLIENT\Agent\agent_x64_v8.0.msi
+
+	rem 建议使用最新版本
+	set path_agent_late_x86=CLIENT\Agent\agent_x86_v8.1.msi
+	set path_agent_late_x64=CLIENT\Agent\agent_x64_v8.1.msi
 
 	rem Agent 配置文件
 	set path_agent_config=CLIENT\Agent\install_config.ini
@@ -99,33 +164,43 @@ if %absStatus%==False (
 	rem 追加参数,不需要则保持为空
 	::set params_agent=password=eset1234.
 	set params_agent=
+	rem --------agent--------
 
-	rem -------------------
+	rem --------PC product--------
+	rem PC Product 文件路径
+	rem 建议使用 v6.5
+	set path_pc_old_x86=CLIENT\PC\eea_nt32_chs_v6.5.msi
+	set path_pc_old_x64=CLIENT\PC\eea_nt64_chs_v6.5.msi
 
-	rem PC Product unc地址
-	set path_eea_v6.5_x86=CLIENT\PC\eea_nt32_chs_v6.5.msi
-	set path_eea_v6.5_x64=CLIENT\PC\eea_nt64_chs_v6.5.msi
+	rem 建议使用最新版本
+	set path_pc_late_x86=CLIENT\PC\eea_nt32_v8.1.msi
+	set path_pc_late_x64=CLIENT\PC\eea_nt64_v8.1.msi
+	rem --------PC product--------
 
-	set path_eea_late_x86=CLIENT\PC\eea_nt32_v8.1.msi
-	set path_eea_late_x64=CLIENT\PC\eea_nt64_v8.1.msi
+	rem --------Server product--------
+	rem SERVER Product 文件路径
+	rem 建议使用 v6.5
+	set path_server_old_x86=CLIENT\Server\efsw_nt32_chs_v6.5.msi
+	set path_server_old_x64=CLIENT\Server\efsw_nt64_chs_v6.5.msi
 
-	rem SERVER Product unc地址
-	set path_efsw_v6.5_x86=CLIENT\Server\efsw_nt32_chs_v6.5.msi
-	set path_efsw_v6.5_x64=CLIENT\Server\efsw_nt64_chs_v6.5.msi
+	rem 建议使用最新版本
+	set path_server_late_x86=CLIENT\Server\efsw_nt32_v8.0.msi
+	set path_server_late_x64=CLIENT\Server\efsw_nt64_v8.0.msi
+	rem --------Server product--------
 
-	set path_efsw_late_x86=
-	set path_efsw_late_x64=CLIENT\Server\efsw_nt64_v8.0.msi
-
-	rem 追加参数,不需要则保持为空
+	rem 追加参数,不需要则保持为空,PC 和 SERVER 版本共用同一个追加参数
 	::set params_eea=password=eset1234.
 	set params_product=
-	rem -------------------
 
-	rem 补丁文件 unc地址
-	set path_hotfix_kb4474419_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
+	rem --------patch--------
+	rem 补丁文件路径
 	set path_hotfix_kb4490628_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4490628-x86.cab
 	set path_hotfix_kb4490628_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4490628-x64.cab
+
+	set path_hotfix_kb4474419_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
+	rem --------patch--------
+
 )
 
 rem -------------------
@@ -150,7 +225,6 @@ if "#%DEFAULT_ARGS%"=="#" (
 rem ----------- init -----------
 
 rem ----------- begin start -----------
-:begin
 if not exist %path_Temp% md %path_Temp%
 
 if "#%args%"=="#" (
@@ -186,13 +260,13 @@ if "#%argsHelp%"=="#True" (
 echo 正在处理相关信息...
 
 call :getUac
-
+if "#%argsForce%"=="#True" set uacStatus=True
 rem 进入安全模式
 if "#%argsEntrySafeMode%"=="#True" (
 	call :writeLog INFO setSafeBoot "开始配置安全模式" True True
 	if "#!uacStatus!"=="#True" (
 		call :getSysVer
-		if not "#!sysVersion!"=="#WindowsXP" (
+		if not !ntVerNumber! lss 61 (
 			call :setSafeBoot entry
 			if "#!returnValue!"=="#True" (
 				call :writeLog INFO entrySafeMode "已经配置为安全模式,将在下次启动时进入安全模式" True True
@@ -202,7 +276,8 @@ if "#%argsEntrySafeMode%"=="#True" (
 				set exitCode=9
 			)
 		) else (
-			call :writeLog WARNING entrySafeMode "此功能不适用于,Windows XP 系统" True True
+			call :writeLog WARNING entrySafeMode "此功能不适用于,Windows XP 和 Windows server 2003 系统" True True
+			set exitCode=2
 		)
 	) else (
 		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
@@ -215,7 +290,7 @@ if "#%argsexitSafeMode%"=="#True" (
 	call :writeLog INFO exitSafeMode "开始清除安全模式" True True
 	if "#!uacStatus!"=="#True" (
 		call :getSysVer
-		if not "#!sysVersion!"=="#WindowsXP" (
+		if not !ntVerNumber! lss 61 (
 			call :setSafeBoot exit
 			if "#!returnValue!"=="#True" (
 				call :writeLog INFO exitSafeMode "已经配置为正常模式,将在下次启动时进入正常模式" True True
@@ -225,7 +300,8 @@ if "#%argsexitSafeMode%"=="#True" (
 				set exitCode=10
 			)
 		) else (
-			call :writeLog WARNING entrySafeMode "此功能不适用于,Windows XP 系统" True True
+			call :writeLog WARNING exitSafeMode "此功能不适用于,Windows XP 和 Windows server 2003 系统" True True
+			set exitCode=2
 		)
 	) else (
 		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
@@ -268,7 +344,7 @@ if "#%argsUndoProduct%"=="#True" (
 			call :uninstallProduct "!productCode!" "%params_msiexec%" "%params_agent%"
 			call :writeLog DEBUG uninstallProduct "[!productName!] 卸载退出码:[!errorlevel!]" False True
 			call :writeLog INFO uninstallProduct "[!productName!] 卸载状态是:[!returnValue!]" True True
-			if "#!msiexecExitCode!"=="#3010" (call :writeLog WARNING uninstallProduct "这个软件 [!productName!] 卸载状态是:[挂起],你需要重启才能进行后续卸载" True True)
+			if "#!msiexecExitCode!"=="#3010" (call :writeLog WARNING uninstallProduct "这个软件 [!productName!] 卸载状态是:[挂起],你需要重启以完成卸载" True True)
 		)
 		if "#!returnValue!"=="#False" (set exitCode=8) else (set exitCode=0)
 	) else (
@@ -283,12 +359,13 @@ if "#%argsHotfix%"=="#True" (
 	if "#!uacStatus!"=="#True" (
 		call :getSysVer
 		if not "#!ntVerNumber!"=="#61" (
-			call :writeLog WARNING installHotfix "当前系统版本不支持安装补丁" True True
+			call :writeLog WARNING installHotfix "当前系统版本无须安装补丁,只用 Windows 7 和 Windows server 2008 才须要安装补丁文件" True True
 			set exitCode=5
 		) else (
 			if "#!ntVer!"=="#6.1.7600" (
 				call :writeLog WARNING installHotfix "当前系统版本不支持此安装补丁,您需要将系统先升级到 Windowns 7 Service Pack 1 才能继续安装此补丁" True True
 				set exitCode=5
+				goto :esetSkip
 			) else (
 				call :getSysArch
 				if "#!sysArch%!"=="#x64" (
@@ -321,7 +398,10 @@ if "#%argsHotfix%"=="#True" (
 							call :hotFixInstall "!hotfix_%%a!" "%params_hotfix%"
 							call :writeLog DEBUG installHotfix "hotfix [%%a] 安装退出码:[!errorlevel!]" False True
 							call :writeLog INFO installHotfix "这个补丁 [%%a] 安装状态是:[!returnValue!]" True True
-							if "#!dismExitCode!"=="#3010" (call :writeLog WARNING installHotfix "这个补丁 [%%a] 安装状态是:[挂起],你需要重启才能进行后续安装" True True)
+							if "#!dismExitCode!"=="#3010" (
+								call :writeLog WARNING installHotfix "这个补丁 [%%a] 安装状态是:[挂起],你需要重启才能进行后续安装" True True
+								goto :esetSkip
+							)
 						)
 					)
 				)
@@ -334,7 +414,6 @@ if "#%argsHotfix%"=="#True" (
 	)		
 )
 
-
 rem 安装Agent
 if "#%argsAgent%"=="#True" (
 	call :writeLog INFO installAgent "开始处理Agent安装" True True
@@ -344,44 +423,53 @@ if "#%argsAgent%"=="#True" (
 		set agentCurrentVersion=!returnValue:~,2!
 		set agentInstallVersion=%version_Agent:.=%
 		set agentInstallVersion=!agentInstallVersion:~,2!
+		if "#%argsForce%"=="#True" set agentCurrentVersion=0
 		if !agentCurrentVersion! lss !agentInstallVersion! (
 			call :getSysArch
 			if "#!sysArch%!"=="#x64" (
-				set agent=%path_agent_x64%
+				set path_agent_old=%path_agent_old_x64%
+				set path_agent_late=%path_agent_late_x64%
 			) else (
-				set agent=%path_agent_x86%
+				set path_agent_old=%path_agent_old_x86%
+				set path_agent_late=%path_agent_late_x85%
 			)
-			set agent_config=%path_agent_config%
+			if "#%argsEarly%"=="#True" set ntVerNumber=51
+			if !ntVerNumber! lss 61 (
+				set path_agent=!path_agent_old!
+			) else (
+				set path_agent=!path_agent_late!
+			)
+			set path_agent_config=%path_agent_config%
 
 			if "#%absStatus%"=="#True" (
-				call :connectShare "!agent!" %shareUser% %sharePwd%
+				call :connectShare "!path_agent!" %shareUser% %sharePwd%
 				call :writeLog DEBUG connectShare "Agent 共享连接状态是: [!returnValue!]" False True 
 
-				call :connectShare "!agent_config!" %shareUser% %sharePwd%
+				call :connectShare "!path_agent_config!" %shareUser% %sharePwd%
 				call :writeLog DEBUG connectShare "Agent 配置 共享连接状态是: [!returnValue!]" False True 
 			) else (
-				call :writeLog INFO downloadAgent "开始下载Agent: [!agent!]" True True
-				call :downFile "%~f0" "!agent!" "%path_Temp%\agent.msi"
-				call :writeLog INFO downloadAgent "[!agent!] 下载状态是: [!returnValue!]" True True 
-				set agent=%path_Temp%\agent.msi
+				call :writeLog INFO downloadAgent "开始下载Agent: [!path_agent!]" True True
+				call :downFile "%~f0" "!path_agent!" "%path_Temp%\agent.msi"
+				call :writeLog INFO downloadAgent "[!path_agent!] 下载状态是: [!returnValue!]" True True 
+				set path_agent=%path_Temp%\agent.msi
 
 				call :writeLog INFO downloadAgentConfig "开始下载Agent config: [install_config.ini]" True True
-				call :downFile "%~f0" "!agent_config!" "%path_Temp%\install_config.ini"
+				call :downFile "%~f0" "!path_agent_config!" "%path_Temp%\install_config.ini"
 				call :writeLog INFO downloadAgentConfig "install_config.ini 下载状态是: [!returnValue!]" True True 
-				set agent_config=%path_Temp%\install_config.ini
+				set path_agent_config=%path_Temp%\install_config.ini
 			)
-			if not exist "!agent!" (
-				call :writeLog ERROR installAgent "未找到可使用的路径:[!agent!]" True True
+			if not exist "!path_agent!" (
+				call :writeLog ERROR installAgent "未找到可使用的路径:[!path_agent_config!]" True True
 			) else (
-				if exist !agent_config! (
-					call :writeLog INFO installAgent "开始安装Agent: [!agent!]" True True
-					call :msiInstall "!agent!" "%params_msiexec%" "%params_agent%"
-					call :writeLog DEBUG installAgent "Agent [!agent!] 安装退出码:[!errorlevel!]" False True
-					call :writeLog INFO installAgent "Agent [!agent!] 安装状态是:[!returnValue!]" True True
-					if "#!returnValue!"=="#False" (call :writeLog ERROR agentInstall "Agent [!agent!] 安装状态是:[失败],请检查系统环境或联系管理员" True True)
+				if exist !path_agent_config! (
+					call :writeLog INFO installAgent "开始安装Agent: [!path_agent!]" True True
+					call :msiInstall "!path_agent!" "%params_msiexec%" "%params_agent%"
+					call :writeLog DEBUG installAgent "Agent [!path_agent!] 安装退出码:[!errorlevel!]" False True
+					call :writeLog INFO installAgent "Agent [!path_agent!] 安装状态是:[!returnValue!]" True True
+					if "#!returnValue!"=="#False" (call :writeLog ERROR agentInstall "Agent [!path_agent!] 安装状态是:[失败],请检查系统环境或联系管理员" True True)
 					if "#!returnValue!"=="#False" (set exitCode=6) else (set exitCode=0)
 				) else (
-					call :writeLog ERROR installAgent "未找到配置文件 [!agent_config!],将退出本次安装,安装状态是:[失败],请检查系统环境或联系管理员" True True
+					call :writeLog ERROR installAgent "未找到配置文件 [!path_agent_config!],将退出本次安装,安装状态是:[失败],请检查系统环境或联系管理员" True True
 					set exitCode=6
 				)
 			)
@@ -402,34 +490,35 @@ if "#%argsProduct%"=="#True" (
 		call :getSysVer
 		if "#!sysType!"=="#Server" (
 			set version_Product=%version_Product_efsw%
-			set path_product_v6.5_x86=%path_efsw_v6.5_x86%
-			set path_product_v6.5_x64=%path_efsw_v6.5_x64%
-			set path_product_late_x86=%path_efsw_late_x86%
-			set path_product_late_x64=%path_efsw_late_x64%
+			set path_product_old_x86=%path_server_old_x86%
+			set path_product_old_x64=%path_server_old_x64%
+			set path_product_late_x86=%path_server_late_x86%
+			set path_product_late_x64=%path_server_late_x64%
 		) else (
 			set version_Product=%version_Product_eea%
-			set path_product_v6.5_x86=%path_eea_v6.5_x86%
-			set path_product_v6.5_x64=%path_eea_v6.5_x64%
-			set path_product_late_x86=%path_eea_late_x86%
-			set path_product_late_x64=%path_eea_late_x64%
+			set path_product_old_x86=%path_pc_old_x86%
+			set path_product_old_x64=%path_pc_old_x64%
+			set path_product_late_x86=%path_pc_late_x86%
+			set path_product_late_x64=%path_pc_late_x64%
 		)
 		call :getVersion Product
 		set returnValue=!returnValue:.=!
 		set productCurrentVersion=!returnValue:~,2!
 		set productInstallVersion=!version_Product:.=!
 		set productInstallVersion=!productInstallVersion:~,2!
+		if "#%argsForce%"=="#True" set productCurrentVersion=0
 		if !productCurrentVersion! lss !productInstallVersion! (
 			call :getSysArch
 			if "#!sysArch%!"=="#x64" (
-				set agent=%path_agent_x64%
-				set path_product_v6.5=!path_product_v6.5_x64!
+				set path_product_old=!path_product_old_x64!
 				set path_product_late=!path_product_late_x64!
 			) else (
-				set path_product_v6.5=!path_product_v6.5_x86!
+				set path_product_old=!path_product_old_x86!
 				set path_product_late=!path_product_late_x86!
 			)
+			if "#%argsEarly%"=="#True" set ntVerNumber=51
 			if !ntVerNumber! lss 61 (
-				set path_product=!path_product_v6.5!
+				set path_product=!path_product_old!
 			) else (
 				set path_product=!path_product_late!
 			)
@@ -463,12 +552,24 @@ if "#%argsProduct%"=="#True" (
 	)		
 )
 
+:esetSkip
 
 rem 删除已下载的临时文件
 if "#%argsDel%"=="#True" (
 	call :writeLog INFO delTempFile "开始删除临时文件" True True
 	for %%a in (*.msi *.cab) do (
 		del /f /q %%a
+	)
+)
+
+rem 抓取ESET安装日志
+if "#%argsEsetLog%"=="#True" (
+	if not !ntVerNumber! lss 61 (
+		call :writeLog INFO prinyEsetLog "开始打印 ESET 安装日志" True True
+		powershell -c "& {Get-EventLog Application -Message *ESET* -Newest 6|Format-List timegenerated,message}"
+	) else (
+		call :writeLog WARNING prinyEsetLog "此功能不适用于,Windows XP 和 Windows server 2003 系统" True True
+		set exitCode=2
 	)
 )
 
@@ -504,7 +605,6 @@ rem ----------- begin end -----------
 
 :debug
 echo --------------- debug ---------------
-echo exitCode: 
 echo ----------参数状态-----------
 for %%a in (%argsList%) do (
 	call :getVar tmpStatus %%a
@@ -519,6 +619,163 @@ for %%a in (!valueList!) do echo %%a:[!%%a!]
 echo ----------变量状态-----------
 echo.
 echo --------------- debug ---------------
+goto :eof
+
+:getCmdHelp
+echo  Usage: %~nx0 [options]
+echo\
+echo  -h,	--help		[optional] Print the help message
+echo  -a,	--all		[optional] Install 'Hotfix ^& Product ^& Agent'
+echo  -y,	--early		[optional] Install old version (6.5)
+echo  -o,	--hotfix	[optional] Install Hotfix
+echo  -g,	--agent		[optional] Install Agent
+echo  -p,	--product	[optional] Install Product
+echo  -n,	--undoAgent	[optional] Uninstall Agent management
+echo  -d,	--undoProduct	[optional] Uninstall Product
+echo  -e,	--entrySafeMode	[optional] Entry safe mode
+echo  -x,	--exitSafeMode	[optional] Exit safe mode
+echo  -t,	--esetlog	[optional] Print ESET install log
+echo  -s,	--status	[optional] Check status
+echo  -f,	--force		[optional] Skip some checks
+echo  -l,	--log		[optional] Disable log
+echo  -r,	--remove	[optional] Remove downloaded files
+echo  -u,	--gui		[optional] Like GUI show
+echo.
+echo		Example:%~nx0 -o --agent -l --remove
+echo\
+echo              Code by Kermit Yao @ Windows 10, 2021-04-5 ,kermit.yao@outlook.com
+goto :eof
+
+rem 获取 gui 界面,返回;return=Null|True
+:getGuiHelp
+set guiArgsStatus=
+set guiStatus=True
+echo.
+echo.
+echo.*************************************************
+echo.*						*
+echo.*	a.自动检查安装 补丁+Agent+安全产品	*
+echo.*	y.安装旧版本 (v6.5)			*
+echo.*	o.安装补丁				*
+echo.*	g.安装 Agent				*
+echo.*	p.安装安全产品				*
+echo.*	n.卸载 Agent				*
+echo.*	d.卸载 安全产品				*
+echo.*	e.进入安全模式				*
+echo.*	x.退出安全模式				*
+echo.*	t.抓取ESET安装日志			*
+echo.*	s.检查状态				*
+echo.*	h.显示命令行帮助			*
+echo.*	kermit.yao@outlook.com			*
+echo.*						*
+echo.*************************************************
+echo.
+echo.
+set /p input=请选择:(a^|y^|o^|p^|n^|d^|e^|x^|g^|t^|s^|h):
+for %%a in (a y o p g n d e x t s h) do (
+	if /i "#!input!"=="#%%a" (
+		cls
+		echo.
+		set guiArgsStatus=-%%a -u
+	)
+)
+
+if "!helpValue!"=="True" (
+	goto :eof
+)
+
+if not "#!guiArgsStatus!"=="#" (
+	set returnValue=!guiArgsStatus!
+) else (
+	cls
+	call :writeLog ERROR getGuiHelp "选择错误:[!input!]" True True
+	goto getGuiHelp
+)
+goto :eof
+
+rem 解析传入参数; 传入参数: %1 = 参数列表；例：call :getArgs args ; 返回值: 无返回值
+:getArgs
+
+for %%a in (%*) do (
+	if /i "#%%a"=="#-h" set argsHelp=True
+	if /i "#%%a"=="#--help" set argsHelp=True
+
+	if /i "#%%a"=="#/h" set argsHelp=True
+
+	if /i "#%%a"=="#-a" (
+		set argsAll=True
+		set argsHotfix=True
+		set argsProduct=True
+		set argsAgent=True
+		)
+
+	if /i "#%%a"=="#--all" (
+		set argsAll=True
+		set argsHotfix=True
+		set argsProduct=True
+		set argsAgent=True
+		)
+
+	if /i "#%%a"=="#-y" (
+		set argsEarly=True
+		set argsProduct=True
+		set argsAgent=True
+		)
+
+	if /i "#%%a"=="#--early" (
+		set argsEarly=True
+		set argsProduct=True
+		set argsAgent=True
+		)
+
+	if /i "#%%a"=="#-o" set argsHotfix=True
+	if /i "#%%a"=="#--hotfix" set argsHotfix=True
+
+	if /i "#%%a"=="#-f" set argsForce=True
+	if /i "#%%a"=="#--force" set argsForce=True
+
+	if /i "#%%a"=="#-p" set argsProduct=True
+	if /i "#%%a"=="#--product" set argsProduct=True
+
+	if /i "#%%a"=="#-g" set argsAgent=True
+	if /i "#%%a"=="#--agent" set argsAgent=True
+
+	if /i "#%%a"=="#-n" set argsUndoAgent=True
+	if /i "#%%a"=="#--undoAgent" set argsUndoAgent=True
+
+	if /i "#%%a"=="#-d" set argsUndoProduct=True
+	if /i "#%%a"=="#--undoProduct" set argsUndoProduct=True
+
+	if /i "#%%a"=="#-e" set argsEntrySafeMode=True
+	if /i "#%%a"=="#--entrySafeMode" set argsEntrySafeMode=True
+
+	if /i "#%%a"=="#-x" set argsExitSafeMode=True
+	if /i "#%%a"=="#--exitSafeMode" set argsExitSafeMode=True
+
+	if /i "#%%a"=="#-t" set argsEsetLog=True
+	if /i "#%%a"=="#--esetlog" set argsEsetLog=True
+
+	if /i "#%%a"=="#-s" set argsSysStatus=True
+	if /i "#%%a"=="#--status" set argsSysStatus=True
+
+	if /i "#%%a"=="#-l" set argsLog=True
+	if /i "#%%a"=="#--log" set argsLog=True
+
+	if /i "#%%a"=="#-r" set argsRemove=True
+	if /i "#%%a"=="#--remove" set argsRemove=True
+
+	if /i "#%%a"=="#-u" set argsGui=True
+	if /i "#%%a"=="#--gui" set argsGui=True
+	)
+)
+for %%a in (%argsList%) do (
+	if "#!%%a!"=="#True" set argsStatus=True
+)
+goto :eof
+
+::多重变量获取
+:getVar
+set %1=!%2!
 goto :eof
 
 rem 配置为进入或退出安全模式; 传入参数:%1 = entry | exit |status ;例：call :setSafeBoot entry; 返回值: returnValue = True | False,当传入参数为: status 时以下变量将被赋值:safeModeStatus=False|True
@@ -548,7 +805,6 @@ if !errorlevel! equ 0 (
 ) else (
 	set returnValue=False
 )
-
 goto :eof
 
 rem 获取系统版本; 传入参数:无需传入；例：call :getSysVer ; 返回值: returnValue = "Windows XP"|"Windows 7"|"Windows 10"|"Windows Server 2008"|"Windows Server 2012"|"Windows Server 2016"|"Windows Server 2019"
@@ -599,150 +855,6 @@ if "#"=="#!sysArch!" (
 ) else (
 	set returnValue=!sysArch!
 )
-goto :eof
-
-:getCmdHelp
-echo  Usage: %~nx0 [options]
-echo\
-echo  -h,	--help		[optional] Print the help message
-echo  -a,	--all		[optional] Install 'Hotfix ^& Product ^& Agent'
-echo  -o,	--hotfix	[optional] Install Hotfix
-echo  -g,	--agent		[optional] Install Agent
-echo  -p,	--product	[optional] Install Product
-echo  -n	--undoAgent	[optional] Uninstall Agent management
-echo  -d	--undoProduct	[optional] Uninstall Product
-echo  -e	--entrySafeMode	[optional] Entry safe mode
-echo  -x	--exitSafeMode	[optional] Exit safe mode
-echo  -s,	--status	[optional] Check status
-echo  -l,	--log		[optional] Disable log
-echo  -r,	--remove	[optional] Remove downloaded files
-echo  -u,	--gui		[optional] Like GUI show
-echo.
-echo		Example:%~nx0 -o --agent -l --remove
-echo\
-echo              Code by Kermit Yao @ Windows 10, 2021-04-5 ,kermit.yao@outlook.com
-goto :eof
-
-rem 获取 gui 界面,返回;return=Null|True
-:getGuiHelp
-set guiArgsStatus=
-set guiStatus=True
-echo.
-echo.
-echo.*************************************************
-echo.*						*
-echo.*	a.自动检查安装 补丁+Agent+安全产品	*
-echo.*						*
-echo.*	o.安装补丁				*
-echo.*						*
-echo.*	g.安装 Agent				*
-echo.*						*
-echo.*	p.安装安全产品				*
-echo.*						*
-echo.*	n.卸载 Agent				*
-echo.*						*
-echo.*	d.卸载 安全产品				*
-echo.*						*
-echo.*	e.进入安全模式				*
-echo.*						*
-echo.*	x.退出安全模式				*
-echo.*						*
-echo.*	s.检查状态				*
-echo.*						*
-echo.*	h.显示命令行帮助			*
-echo.*						*
-echo.*	kermit.yao@outlook.com			*
-echo.*						*
-echo.*************************************************
-echo.
-echo.
-set /p input=请选择:(a^|o^|p^|n^|d^|e^|x^|g^|s^|h):
-for %%a in (a o p g n d e x s h) do (
-	if /i "#!input!"=="#%%a" (
-		cls
-		echo.
-		set guiArgsStatus=-%%a -u
-	)
-)
-
-if "!helpValue!"=="True" (
-	goto :eof
-)
-
-if not "#!guiArgsStatus!"=="#" (
-	set returnValue=!guiArgsStatus!
-) else (
-	cls
-	call :writeLog getGuiHelp ERROR "选择错误:[!input!]" True True
-	goto getGuiHelp
-)
-goto :eof
-
-rem 解析传入参数; 传入参数: %1 = 参数列表；例：call :getArgs args ; 返回值: 无返回值
-:getArgs
-
-for %%a in (%*) do (
-	if /i "#%%a"=="#-h" set argsHelp=True
-	if /i "#%%a"=="#--help" set argsHelp=True
-
-	if /i "#%%a"=="#/h" set argsHelp=True
-
-	if /i "#%%a"=="#-a" (
-		set argsAll=True
-		set argsHotfix=True
-		set argsProduct=True
-		set argsAgent=True
-		)
-
-	if /i "#%%a"=="#--all" (
-		set argsAll=True
-		set argsHotfix=True
-		set argsProduct=True
-		set argsAgent=True
-		)
-
-	if /i "#%%a"=="#-o" set argsHotfix=True
-	if /i "#%%a"=="#--hotfix" set argsHotfix=True
-
-	if /i "#%%a"=="#-p" set argsProduct=True
-	if /i "#%%a"=="#--product" set argsProduct=True
-
-	if /i "#%%a"=="#-g" set argsAgent=True
-	if /i "#%%a"=="#--agent" set argsAgent=True
-
-	if /i "#%%a"=="#-n" set argsUndoAgent=True
-	if /i "#%%a"=="#--undoAgent" set argsUndoAgent=True
-
-	if /i "#%%a"=="#-d" set argsUndoProduct=True
-	if /i "#%%a"=="#--undoProduct" set argsUndoProduct=True
-
-	if /i "#%%a"=="#-e" set argsEntrySafeMode=True
-	if /i "#%%a"=="#--entrySafeMode" set argsEntrySafeMode=True
-
-	if /i "#%%a"=="#-x" set argsExitSafeMode=True
-	if /i "#%%a"=="#--exitSafeMode" set argsExitSafeMode=True
-
-	if /i "#%%a"=="#-s" set argsSysStatus=True
-	if /i "#%%a"=="#--status" set argsSysStatus=True
-
-	if /i "#%%a"=="#-l" set argsLog=True
-	if /i "#%%a"=="#--log" set argsLog=True
-
-	if /i "#%%a"=="#-r" set argsRemove=True
-	if /i "#%%a"=="#--remove" set argsRemove=True
-
-	if /i "#%%a"=="#-u" set argsGui=True
-	if /i "#%%a"=="#--gui" set argsGui=True
-	)
-)
-for %%a in (%argsList%) do (
-	if "#!%%a!"=="#True" set argsStatus=True
-)
-goto :eof
-
-::多重变量获取
-:getVar
-set %1=!%2!
 goto :eof
 
 rem 判断是否安装补丁; 传入参数: %1-%9 = 补丁号；例：call :getHotfixStatus KB4474419 KB4490628 ; 返回值:无返回值，但是如果查找到对应的补丁号存在则传入的补丁后会被赋值为 True，如 KB4474419=True

@@ -1,0 +1,128 @@
+1.路由表：
+
+	添加: ip route-static 0.0.0.0 24 10.1.1.254
+	删除:undo ip route-static 0.0.0.0
+	查看:display ip routing-table
+
+2.用户:
+	添加:local-user admin
+		密码:password simple eset1234.
+		权限:auth user-role level-15
+		可用服务:service-type telnet
+	删除:
+		undo local-user admin
+
+2.vlan
+	配置vlan 地址：
+		interface vlan 1
+		ip address 10.1.1.254 24
+	加入端口:
+		进入vlan：vlan 1
+		添加:port GigabitEthernet 1/0/11 to GigabitEthernet 1/0/20
+		删除:undo port GigabitEthernet 1/0/11 to GigabitEthernet 1/0/20
+
+5.接口配地址
+	添加:interface g1/0/1 ;  ip address 10.1.1.254 24；dns server 202.96.209.133
+	删除:display interface g1/0/1
+	查看:interface g1/0/1 ; undo ip address
+	
+
+6.开启 telnet
+	开启:telnet server enable
+	设置虚拟线路: user-interface vty 0 4
+	登陆模式:authentication-mode scheme
+
+7.trunk
+	添加trunk
+		interface g1/0/10
+		port link-type trunk
+		port trunk permit vlan all
+
+8.dhcp 
+	开启:dhcp enable
+		创建池:dhcp server ip-pool vlan1
+			网络：network 10.1.1.0 24
+			地址池：address range 10.1.1.100 10.1.1.150
+			gateway-list: 10.1.1.254
+			dns-list: 10.1.1.254 202.96.209.133
+	查看:dis dhcp server ip-in-use
+	删除池：undo dhcp server ip-pool vlan1
+
+9.单臂路由
+	int g0/0.1
+	vlan-type dot1q vid 2
+	ip addres 10.1.1.254 24
+	
+10.三层开启路由功能
+	进入端口: int g1/0/47
+	开启: port link-mode route
+
+11.acl
+
+	添加: acl basic 2001
+		添加规则：rule 1 permit source 10.1.1.1 0.0.0.255
+		应用：int g1/0/1
+			packet-filter 2001 inbound
+
+	添加: acl advanced 3001
+		添加 ：rule 1 permit ip source 10.1.1.1 destination 20.1.1.1
+		应用: int g1/0/1
+			packte-file 3001 inbound
+
+	查看: dis acl all
+		dis packet-filter int g1/0/1
+
+12.nat
+	静态nat：nat static outbound 10.1.1.1 192.168.30.88
+
+	生效：int g0/2 (出端口)
+		nat static enable
+	
+	动态nat: 
+		创建acl表：acl basic 2000
+			rule permit source 0.0.0.0 255.255.255.255
+		创建nat外网组：nat address-group 0
+			添加ip：address 192.168.30.88 192.168.30.90
+	应用:int g0/2 (出口)
+		nat outbound 2000 address-group 0
+
+	查看nat列表 : display nat all
+	查看nat会话信息:dis nat session verbose
+
+13.IP Sec
+	
+	创建安全提议：ipsec transform-set tranA
+			配置为隧道模式:encapsulation-mode tunnel
+			   配置安全协议:protocol esp
+			   配置加密算法:esp encryption-algorithm aes-cbc-128
+			   配置认证算法:esp authentication-algorithm md5
+	配置安全策略A: ipsec policy mapA manual
+			引用acl: security acl 3001
+			引用安全提议:transform-set tranA
+			指定对端地址:remote-address 100.1.1.1
+			配置ESP协议出入 SPI:sa spi outbound esp 12345
+					sa spi in bound esp 54321
+			配置ESP协议密钥出入方向：set string-key outbound esp simple abcdefg
+					         set string-key inbound esp simple gfedcba
+			
+			应用到接口:interface gigabitethernet g0/1
+				ip address 100.1.1.2 24
+				ipsec apply policy mapA
+
+	配置安全策略B: ipsec policy mapA manual
+			引用acl: security acl 3001
+			引用安全提议:transform-set tranB
+			指定对端地址:remote-address 200.1.1.1
+			配置ESP协议出入 SPI:sa spi outbound esp 54321
+					sa spi in bound esp 12345
+			配置ESP协议密钥出入方向：set string-key outbound esp simple gfedcba
+					         set string-key inbound esp simple abcdefg
+			
+			应用到接口:interface gigabitethernet g0/1
+				ip address 100.1.1.2 24
+				ipsec apply policy mapB	
+			对端配置一致
+	
+	查看：display ipsec transform-set
+		display ipsec policy
+		display ipsec tunnel
