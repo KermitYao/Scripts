@@ -46,7 +46,7 @@ class Config():
     UPLOAD_SIZE=500
     #Only key
     SECRET_KEY = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT20200612'
-    #User info
+    #user info
     USER_INFO=[
         {
             'u':'root',
@@ -64,5 +64,114 @@ class Config():
             'l':2
         }
     ] 
-    
 
+    ROUTE=[
+            {   
+                'name':'baota',
+                'hosta':'http://192.168.17.91:8888',
+                'hostb':'http://baota.yjyn.top:6080',
+                'user':'baota',
+                'passwd':'pw80235956',
+                'describe':'宝塔linux管理面板',
+            },
+
+            {
+                'name':'pytools',
+                'hosta':'http://192.168.17.91:6081',
+                'hostb':'http://yjyn.top:1443',
+                'user':'guest',
+                'passwd':'pw80235956',
+                'describe':'python 下载站点',
+            },
+
+            {
+                'name':'aria2',
+                'hosta':'http://192.168.17.91:6084',
+                'hostb':'http://download.yjyn.top:6080',
+                'user':'admin',
+                'passwd':'pw80235956',
+                'describe':'aria2 下载面板',
+            },
+
+            {
+                'name':'datassh',
+                'hosta':'192.168.17.91:22',
+                'hostb':'yjyn.top:22',
+                'user':'root',
+                'passwd':'pw_80235956',
+                'describe':'网络服务中心 ssh',
+            },
+
+            {
+                'name':'frps',
+                'hosta':'http://192.168.17.91:7500',
+                'hostb':'http://frp.yjyn.top:7500',
+                'user':'admin',
+                'passwd':'pw80235956',
+                'describe':'frp 内网穿透控制面板',
+            },
+
+            {
+                'name':'proxy',
+                'hosta':'http://192.168.17.91:3128',
+                'hostb':'http://yjyn.top:3128',
+                'user':None,
+                'passwd':None,
+                'describe':'Apache http 正向代理。',
+            },
+
+            {
+                'name':'wall_proxy',
+                'hosta':'http://192.168.17.91:3129',
+                'hostb':'http://yjyn.top:3129',
+                'user':None,
+                'passwd':None,
+                'describe':'Apache http 正向代理,可以连接国际互联网;翻墙梯子。',
+            },
+
+            {
+                'name':'ych_vmware',
+                'hosta':'https://192.168.16.99:443',
+                'hostb':'https://yjyn.top:3129',
+                'user':'root',
+                'passwd':'pw_80235956',
+                'describe':'ych vmware esxi 控制台',
+            },
+
+            {
+                'name':'demo_vmware',
+                'hosta':'https://192.168.16.190:443',
+                'hostb':'http://yjyn.top:3129',
+                'user':'root',
+                'passwd':'eset1234.',
+                'describe':'demo vmware esxi 控制台',
+            },
+
+            {
+                'name':'eset ep',
+                'hosta':'https://192.168.16.192:443/era',
+                'hostb':'https://yjyn.top:1443/era',
+                'user':'administrator',
+                'passwd':'eset1234.',
+                'describe':'eset 杀毒软件控制台',
+            },
+
+            {
+                'name':'eset eei',
+                'hosta':'http://192.168.16.192:8443',
+                'hostb':'http://yjyn.top:7515',
+                'user':'administrator',
+                'passwd':'eset1234.',
+                'describe':'eset edr 控制台',
+            },
+
+            {
+                'name':'360eep all in one',
+                'hosta':'https://192.168.16.194:9088',
+                'hostb':'http://yjyn.top:7515',
+                'user':'admin',
+                'passwd':'360Epp1234.',
+                'describe':'eset edr 控制台',
+            },
+
+        ]

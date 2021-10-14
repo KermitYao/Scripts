@@ -456,7 +456,7 @@ def testup():
 
     return render_template('testup.html')
 
-@app.route('/runServer',methods=['get', 'POST'])
+@app.route('/runServer',methods=['GET', 'POST'])
 def runServer():
     if 'username' in session:
         MAC=['78:2b:cb:19:a5:7e', '78:2b:cb:19:a5:7f']      
@@ -490,6 +490,20 @@ def login():
                 '''
     else:
         return redirect(url_for('index',filepath='/'))
+
+#导航
+@app.route('/daohang/',methods=['GET','POST'])
+def daohang():
+    loginStatus=False
+    if 'username' in session:
+        loginStatus = True
+    return render_template(
+        'navigation.html',
+        loginStatus = loginStatus,
+        route = Config.ROUTE
+        )
+
+
 
 def testMsg(msg):
     print(msg)
@@ -613,6 +627,7 @@ if __name__ == '__main__':
     #加载图片信息
     PHOTO_INFO=[]
     PHOTO_NUM=20
+    status = False
     dirList=photoInfo(Config.PHOTO_DIR,'dir')
     if dirList:
         for dir in dirList:
