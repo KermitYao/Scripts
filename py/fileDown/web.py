@@ -627,7 +627,6 @@ if __name__ == '__main__':
     #加载图片信息
     PHOTO_INFO=[]
     PHOTO_NUM=20
-    status = False
     dirList=photoInfo(Config.PHOTO_DIR,'dir')
     if dirList:
         for dir in dirList:

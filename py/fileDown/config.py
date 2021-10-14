@@ -68,6 +68,7 @@ class Config():
     ROUTE=[
             {   
                 'name':'baota',
+                'protocol':'http',
                 'hosta':'http://192.168.17.91:8888',
                 'hostb':'http://baota.yjyn.top:6080',
                 'user':'baota',
@@ -77,6 +78,7 @@ class Config():
 
             {
                 'name':'pytools',
+                'protocol':'http',
                 'hosta':'http://192.168.17.91:6081',
                 'hostb':'http://yjyn.top:1443',
                 'user':'guest',
@@ -86,6 +88,7 @@ class Config():
 
             {
                 'name':'aria2',
+                'protocol':'http',
                 'hosta':'http://192.168.17.91:6084',
                 'hostb':'http://download.yjyn.top:6080',
                 'user':'admin',
@@ -95,6 +98,7 @@ class Config():
 
             {
                 'name':'datassh',
+                'protocol':'ssh',
                 'hosta':'192.168.17.91:22',
                 'hostb':'yjyn.top:22',
                 'user':'root',
@@ -104,6 +108,7 @@ class Config():
 
             {
                 'name':'frps',
+                'protocol':'http',
                 'hosta':'http://192.168.17.91:7500',
                 'hostb':'http://frp.yjyn.top:7500',
                 'user':'admin',
@@ -113,6 +118,7 @@ class Config():
 
             {
                 'name':'proxy',
+                'protocol':'http',
                 'hosta':'http://192.168.17.91:3128',
                 'hostb':'http://yjyn.top:3128',
                 'user':None,
@@ -122,6 +128,7 @@ class Config():
 
             {
                 'name':'wall_proxy',
+                'protocol':'http',
                 'hosta':'http://192.168.17.91:3129',
                 'hostb':'http://yjyn.top:3129',
                 'user':None,
@@ -131,6 +138,7 @@ class Config():
 
             {
                 'name':'ych_vmware',
+                'protocol':'https',
                 'hosta':'https://192.168.16.99:443',
                 'hostb':'https://yjyn.top:3129',
                 'user':'root',
@@ -140,6 +148,7 @@ class Config():
 
             {
                 'name':'demo_vmware',
+                'protocol':'https',
                 'hosta':'https://192.168.16.190:443',
                 'hostb':'http://yjyn.top:3129',
                 'user':'root',
@@ -149,6 +158,7 @@ class Config():
 
             {
                 'name':'eset ep',
+                'protocol':'https',
                 'hosta':'https://192.168.16.192:443/era',
                 'hostb':'https://yjyn.top:1443/era',
                 'user':'administrator',
@@ -158,6 +168,7 @@ class Config():
 
             {
                 'name':'eset eei',
+                'protocol':'https',
                 'hosta':'http://192.168.16.192:8443',
                 'hostb':'http://yjyn.top:7515',
                 'user':'administrator',
@@ -167,6 +178,7 @@ class Config():
 
             {
                 'name':'360eep all in one',
+                'protocol':'https',
                 'hosta':'https://192.168.16.194:9088',
                 'hostb':'http://yjyn.top:7515',
                 'user':'admin',
