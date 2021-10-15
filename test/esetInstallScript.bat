@@ -1,9 +1,13 @@
 1>1/* ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+::* 系统支持 win XP| win7 | win8| win10 | win server 2003 | win server 2008 | win server 2012 | win server|2016 |win server 2019
+::* 前置第三方组件 findstr | wmic | msiexec | dism | reg | powershell (非必须) 
 ::* 2021-05-25 脚本完成
-::* 2021-05-27 增加GUI选择和命令行选项可以无视大小写
-::* 2021-06-03 增加对非sp1系统(nt 6.1.7600)的检测;更新部分描述
-::* 2021-08-24 1.增加在安装Server2008 系统安全产品时自动添加网络模块；2.将 find 替换为 findstr 以修复某些情况下,报错的问题； 3.在使用本地安装文件时,将首先跳转到脚本所在目录,再执行后续操作。
-::* 2021-09-24 1.新增eset 安装事件的抓取模块;2.新增强制略过检查模块;3.新增可以手动选择安装老版本模块;4.新增自动安装时,安装完补丁未重启时,现在将略过后续安装;5.修复自动安装6.5失败的问题;6.修复gui选择错误时,不会出现报错提示;7.增加描述信息
+::* 2021-05-27 1.新增 -- GUI选择和命令行选项可以无视大小写
+::* 2021-06-03 1.新增 -- 对非sp1系统(nt 6.1.7600)的检测;2.更新 -- 部分描述
+::* 2021-08-24 1.新增 -- 在安装Server2008 系统安全产品时自动添加网络模块；2.更新 -- 将 find 替换为 findstr 以修复某些情况下,报错的问题； 3.更新 -- 在使用本地安装文件时,将首先跳转到脚本所在目录,再执行后续操作。
+::* 2021-09-24 1.新增 -- eset 安装事件的抓取模块;2.新增 -- 强制略过检查模块;3.新增 -- 可以手动选择安装老版本模块;4.新增 -- 自动安装时,安装完补丁未重启时,现在将略过后续安装;5.修复 -- 自动安装6.5失败的问题;6.修复 -- gui选择错误时,不会出现报错提示;7.新增 -- 描述信息
+::* 2021-09-29 1.更新 -- 现在当AGENT模块安装无法找到配置文件时会提示用户手动输入服务器地址,而非跳过AGENT安装（定义下载的文件如果小于 4kb 则表示下载的文件不正常,可以通过 errorFileSize=4 变量定义）
 
 goto :begin
 ::-----readme-----
@@ -47,7 +51,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.2
+@rem version 1.1.3
 @echo off
 setlocal enabledelayedexpansion
 
@@ -94,15 +98,15 @@ if %absStatus%==False (
 	rem Agent 下载地址
 
 	rem 老系统专用agent,建议使用 v8.0
-	set path_agent_old_x86=http://192.168.30.43:8080/CLIENT/Agent/agent_x86_v8.0.msi
-	set path_agent_old_x64=http://192.168.30.43:8080/CLIENT/Agent/agent_x64_v8.0.msi
+	set path_agent_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_v8.0.msi/
+	set path_agent_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_v8.0.msi/
 
 	rem 最新版本agent,建议使用最新版本
-	set path_agent_late_x86=http://192.168.30.43:8080/CLIENT/Agent/agent_x86_v8.1.msi
-	set path_agent_late_x64=http://192.168.30.43:8080/CLIENT/Agent/agent_x64_v8.1.msi
+	set path_agent_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_later.msi/
+	set path_agent_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_later.msi/
 
 	rem Agent 配置文件
-	set path_agent_config=http://192.168.30.43:8080/CLIENT/Agent/install_config.ini
+	set path_agent_config=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/None
 
 	rem 追加参数,不需要则保持为空
 	::set params_agent=password=eset1234.
@@ -112,23 +116,23 @@ if %absStatus%==False (
 	rem --------PC product--------
 	rem PC Product 下载地址
 	rem 老系统专用杀毒软件,建议使用 v6.5
-	set path_pc_old_x86=http://192.168.30.43:8080/CLIENT/PC/eea_nt32_chs_v6.5.msi
-	set path_pc_old_x64=http://192.168.30.43:8080/CLIENT/PC/eea_nt64_chs_v6.5.msi
+	set path_pc_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi/
+	set path_pc_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi/
 
 	rem 建议使用最新版本
-	set path_pc_late_x86=http://192.168.30.43:8080/CLIENT/PC/eea_nt32_v8.1.msi
-	set path_pc_late_x64=http://192.168.30.43:8080/CLIENT/PC/eea_nt64_v8.1.msi
+	set path_pc_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_later.msi/
+	set path_pc_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_later.msi/
 	rem --------PC product--------
 
 	rem --------Server product--------
 	rem SERVER Product 下载地址
 	rem 老系统专用杀毒软件,建议使用 v6.5
-	set path_server_old_x86=http://192.168.30.43:8080/CLIENT/Server/efsw_nt32_chs_v6.5.msi
-	set path_server_old_x64=http://192.168.30.43:8080/CLIENT/Server/efsw_nt64_chs_v6.5.msi
+	set path_server_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi/
+	set path_server_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi/
 
 	rem 建议使用最新版本
-	set path_server_late_x86=http://192.168.30.43:8080/CLIENT/Server/efsw_nt32_v8.0.msi
-	set path_server_late_x64=http://192.168.30.43:8080/CLIENT/Server/efsw_nt64_v8.0.msi
+	set path_server_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi/
+	set path_server_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_later.msi/
 	rem --------Server product--------
 
 	rem 追加参数,不需要则保持为空,PC 和 SERVER 版本共用同一个追加参数
@@ -137,11 +141,11 @@ if %absStatus%==False (
 
 	rem --------patch--------
 	rem 补丁文件 下载地址
-	set path_hotfix_kb4490628_x86=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4490628_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab/
+	set path_hotfix_kb4490628_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab/
 
-	set path_hotfix_kb4474419_x86=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=http://192.168.30.43:8080/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4474419_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab/
+	set path_hotfix_kb4474419_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab/
 	rem --------patch--------
 
 ) else (
@@ -221,6 +225,9 @@ if "#%DEFAULT_ARGS%"=="#" (
 	set args=%DEFAULT_ARGS%
 
 )
+
+rem 下载文件阈值,小于多少判定为下载失败,  单位kb
+set errorFileSize=4
 
 rem ----------- init -----------
 
@@ -459,19 +466,20 @@ if "#%argsAgent%"=="#True" (
 				set path_agent_config=%path_Temp%\install_config.ini
 			)
 			if not exist "!path_agent!" (
-				call :writeLog ERROR installAgent "未找到可使用的路径:[!path_agent_config!]" True True
+				call :writeLog ERROR installAgent "未找到可使用的路径:[!path_agent!]" True True
 			) else (
-				if exist !path_agent_config! (
-					call :writeLog INFO installAgent "开始安装Agent: [!path_agent!]" True True
-					call :msiInstall "!path_agent!" "%params_msiexec%" "%params_agent%"
-					call :writeLog DEBUG installAgent "Agent [!path_agent!] 安装退出码:[!errorlevel!]" False True
-					call :writeLog INFO installAgent "Agent [!path_agent!] 安装状态是:[!returnValue!]" True True
-					if "#!returnValue!"=="#False" (call :writeLog ERROR agentInstall "Agent [!path_agent!] 安装状态是:[失败],请检查系统环境或联系管理员" True True)
-					if "#!returnValue!"=="#False" (set exitCode=6) else (set exitCode=0)
-				) else (
-					call :writeLog ERROR installAgent "未找到配置文件 [!path_agent_config!],将退出本次安装,安装状态是:[失败],请检查系统环境或联系管理员" True True
-					set exitCode=6
+				set tmp_params_msiexec=%params_msiexec%
+				if not exist !path_agent_config! (
+					call :writeLog ERROR installAgent "未找到配置文件 [!path_agent_config!],请手动输入服务器信息" True True
+					set params_msiexec=/norestart
 				)
+				call :writeLog INFO installAgent "开始安装Agent: [!path_agent!]" True True
+				call :msiInstall "!path_agent!" "!params_msiexec!" "%params_agent%"
+				call :writeLog DEBUG installAgent "Agent [!path_agent!] 安装退出码:[!errorlevel!]" False True
+				call :writeLog INFO installAgent "Agent [!path_agent!] 安装状态是:[!returnValue!]" True True
+				set params_msiexec=!tmp_params_msiexec!
+				if "#!returnValue!"=="#False" (call :writeLog ERROR agentInstall "Agent [!path_agent!] 安装状态是:[失败],请检查系统环境或联系管理员" True True)
+				if "#!returnValue!"=="#False" (set exitCode=6) else (set exitCode=0)
 			)
 		) else (
 			call :writeLog INFO installAgent "Agent 版本 [%version_Agent%] 小于或等于当前已安装的版本,无需再次安装" True True
@@ -539,7 +547,7 @@ if "#%argsProduct%"=="#True" (
 				call :msiInstall "!path_product!" "%params_msiexec%" "%params_product%"
 				call :writeLog DEBUG installProduct "安全产品 [!path_product!] 安装退出码:[!errorlevel!]" False True
 				call :writeLog INFO installProduct "安全产品 [!path_product!] 安装状态是:[!returnValue!]" True True
-				if "#!returnValue!"=="#False" (call :writeLog ERROR installProduct "安全产品 [!path_product!] 安装状态是:[失败],请检查网络或联系管理员" True True)
+				if "#!returnValue!"=="#False" (call :writeLog ERROR installProduct "安全产品 [!path_product!] 安装状态是:[失败],请检查系统环境或联系管理员" True True)
 				if "#!returnValue!"=="#False" (set exitCode=11) else (set exitCode=0)
 			)
 		) else (
@@ -987,6 +995,16 @@ if "#!downStatus!"=="#False" (
 		)
 	)
 )
+
+if exist "%~3" (
+	set /a currentFileSize=%~z3/1024
+	if !currentFileSize! lss %errorFileSize% (
+		set downStatus=False
+		move "%~3" "%~3.error"
+	)
+
+)
+
 set returnValue=!downStatus!
 goto :eof
 
