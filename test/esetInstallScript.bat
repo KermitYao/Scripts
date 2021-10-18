@@ -8,12 +8,13 @@
 ::* 2021-08-24 1.新增 -- 在安装Server2008 系统安全产品时自动添加网络模块；2.更新 -- 将 find 替换为 findstr 以修复某些情况下,报错的问题； 3.更新 -- 在使用本地安装文件时,将首先跳转到脚本所在目录,再执行后续操作。
 ::* 2021-09-24 1.新增 -- eset 安装事件的抓取模块;2.新增 -- 强制略过检查模块;3.新增 -- 可以手动选择安装老版本模块;4.新增 -- 自动安装时,安装完补丁未重启时,现在将略过后续安装;5.修复 -- 自动安装6.5失败的问题;6.修复 -- gui选择错误时,不会出现报错提示;7.新增 -- 描述信息
 ::* 2021-09-29 1.更新 -- 现在当AGENT模块安装无法找到配置文件时会提示用户手动输入服务器地址,而非跳过AGENT安装（定义下载的文件如果小于 4kb 则表示下载的文件不正常,可以通过 errorFileSize=4 变量定义）
+::* 2021-10-16 1.修复 -- 当在命令行模式工作并且在未找到配置文件时,现在会覆盖安装,并保留原有的host 和证书信息, 而非和gui模式一样弹出用户操作界面
 
 goto :begin
 ::-----readme-----
 
 快速使用:
-	修改90行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
+	修改96行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
 
 
 概述:
@@ -51,7 +52,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.3
+@rem version 1.1.4
 @echo off
 setlocal enabledelayedexpansion
 
@@ -470,8 +471,10 @@ if "#%argsAgent%"=="#True" (
 			) else (
 				set tmp_params_msiexec=%params_msiexec%
 				if not exist !path_agent_config! (
-					call :writeLog ERROR installAgent "未找到配置文件 [!path_agent_config!],请手动输入服务器信息" True True
-					set params_msiexec=/norestart
+					if "#%argsGui%"=="#True" (
+						call :writeLog ERROR installAgent "未找到配置文件 [!path_agent_config!],请手动输入服务器信息" True True
+						set params_msiexec=/norestart
+					)
 				)
 				call :writeLog INFO installAgent "开始安装Agent: [!path_agent!]" True True
 				call :msiInstall "!path_agent!" "!params_msiexec!" "%params_agent%"
