@@ -99,12 +99,12 @@ if %absStatus%==False (
 	rem Agent 下载地址
 
 	rem 老系统专用agent,建议使用 v8.0
-	set path_agent_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_v8.0.msi/
-	set path_agent_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_v8.0.msi/
+	set path_agent_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_v8.0.msi
+	set path_agent_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_v8.0.msi
 
 	rem 最新版本agent,建议使用最新版本
-	set path_agent_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_later.msi/
-	set path_agent_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_later.msi/
+	set path_agent_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_later.msi
+	set path_agent_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_later.msi
 
 	rem Agent 配置文件
 	set path_agent_config=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/None
@@ -117,23 +117,23 @@ if %absStatus%==False (
 	rem --------PC product--------
 	rem PC Product 下载地址
 	rem 老系统专用杀毒软件,建议使用 v6.5
-	set path_pc_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi/
-	set path_pc_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi/
+	set path_pc_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
+	set path_pc_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
 
 	rem 建议使用最新版本
-	set path_pc_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_later.msi/
-	set path_pc_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_later.msi/
+	set path_pc_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_later.msi
+	set path_pc_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_later.msi
 	rem --------PC product--------
 
 	rem --------Server product--------
 	rem SERVER Product 下载地址
 	rem 老系统专用杀毒软件,建议使用 v6.5
-	set path_server_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi/
-	set path_server_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi/
+	set path_server_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
+	set path_server_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
 	rem 建议使用最新版本
-	set path_server_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi/
-	set path_server_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_later.msi/
+	set path_server_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi
+	set path_server_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_later.msi
 	rem --------Server product--------
 
 	rem 追加参数,不需要则保持为空,PC 和 SERVER 版本共用同一个追加参数
@@ -142,11 +142,11 @@ if %absStatus%==False (
 
 	rem --------patch--------
 	rem 补丁文件 下载地址
-	set path_hotfix_kb4490628_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab/
-	set path_hotfix_kb4490628_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab/
+	set path_hotfix_kb4490628_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
 
-	set path_hotfix_kb4474419_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab/
-	set path_hotfix_kb4474419_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab/
+	set path_hotfix_kb4474419_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
 	rem --------patch--------
 
 ) else (
