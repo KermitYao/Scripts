@@ -9,7 +9,7 @@
 ::* 2021-09-24 1.新增 -- eset 安装事件的抓取模块;2.新增 -- 强制略过检查模块;3.新增 -- 可以手动选择安装老版本模块;4.新增 -- 自动安装时,安装完补丁未重启时,现在将略过后续安装;5.修复 -- 自动安装6.5失败的问题;6.修复 -- gui选择错误时,不会出现报错提示;7.新增 -- 描述信息
 ::* 2021-09-29 1.更新 -- 现在当AGENT模块安装无法找到配置文件时会提示用户手动输入服务器地址,而非跳过AGENT安装（定义下载的文件如果小于 4kb 则表示下载的文件不正常,可以通过 errorFileSize=4 变量定义）
 ::* 2021-10-16 1.修复 -- 当在命令行模式工作并且在未找到配置文件时,现在会覆盖安装,并保留原有的host 和证书信息, 而非和gui模式一样弹出用户操作界面
-
+::* 2021-10-29 1.更新 -- 修改部分描述,修正错别字
 goto :begin
 ::-----readme-----
 
@@ -367,11 +367,11 @@ if "#%argsHotfix%"=="#True" (
 	if "#!uacStatus!"=="#True" (
 		call :getSysVer
 		if not "#!ntVerNumber!"=="#61" (
-			call :writeLog WARNING installHotfix "当前系统版本无须安装补丁,只用 Windows 7 和 Windows server 2008 才须要安装补丁文件" True True
+			call :writeLog WARNING installHotfix "当前系统版本无须安装补丁,只有 Windows 7 和 Windows server 2008 才需要安装补丁文件" True True
 			set exitCode=5
 		) else (
 			if "#!ntVer!"=="#6.1.7600" (
-				call :writeLog WARNING installHotfix "当前系统版本不支持此安装补丁,您需要将系统先升级到 Windowns 7 Service Pack 1 才能继续安装此补丁" True True
+				call :writeLog WARNING installHotfix "当前系统版本不支持此安装补丁,您需要将系统先安装 Service Pack 1 才能继续安装此补丁" True True
 				set exitCode=5
 				goto :esetSkip
 			) else (
