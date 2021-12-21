@@ -10,6 +10,7 @@
 ::* 2021-09-29 1.更新 -- 现在当AGENT模块安装无法找到配置文件时会提示用户手动输入服务器地址,而非跳过AGENT安装（定义下载的文件如果小于 4kb 则表示下载的文件不正常,可以通过 errorFileSize=4 变量定义）
 ::* 2021-10-16 1.修复 -- 当在命令行模式工作并且在未找到配置文件时,现在会覆盖安装,并保留原有的host 和证书信息, 而非和gui模式一样弹出用户操作界面
 ::* 2021-10-29 1.更新 -- 修改部分描述,修正错别字
+::* 2021-12-21 1.更新 -- 增加部分描述; 2.更新 -- 将下载地址更改为 files.yjyn.top:6080 避免老ie内核系统下载失败的问题
 goto :begin
 ::-----readme-----
 
@@ -36,8 +37,8 @@ goto :begin
 	2.可以使用参数 -h | -help 来查看支持的参数
 	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
 	4.
-		set version_Agent=8.1
-		set version_Product_eea=8.1
+		set version_Agent=9.0
+		set version_Product_eea=9.0
 		set version_Product_efsw=8.0
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
@@ -52,7 +53,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.4
+@rem version 1.1.5
 @echo off
 setlocal enabledelayedexpansion
 
@@ -79,7 +80,7 @@ rem 设置初始变量
 
 rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
-set version_Agent=8.1
+set version_Agent=9.1
 set version_Product_eea=8.1
 set version_Product_efsw=8.0
 rem -------------------
@@ -99,15 +100,15 @@ if %absStatus%==False (
 	rem Agent 下载地址
 
 	rem 老系统专用agent,建议使用 v8.0
-	set path_agent_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_v8.0.msi
-	set path_agent_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_v8.0.msi
+	set path_agent_old_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_v8.0.msi
+	set path_agent_old_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_v8.0.msi
 
 	rem 最新版本agent,建议使用最新版本
-	set path_agent_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_later.msi
-	set path_agent_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_later.msi
+	set path_agent_late_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x86_later.msi
+	set path_agent_late_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Agent/agent_x64_later.msi
 
 	rem Agent 配置文件
-	set path_agent_config=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/None
+	set path_agent_config=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Agent/None
 
 	rem 追加参数,不需要则保持为空
 	::set params_agent=password=eset1234.
@@ -117,23 +118,23 @@ if %absStatus%==False (
 	rem --------PC product--------
 	rem PC Product 下载地址
 	rem 老系统专用杀毒软件,建议使用 v6.5
-	set path_pc_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
-	set path_pc_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
+	set path_pc_old_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
+	set path_pc_old_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
 
 	rem 建议使用最新版本
-	set path_pc_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_later.msi
-	set path_pc_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_later.msi
+	set path_pc_late_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_later.msi
+	set path_pc_late_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_later.msi
 	rem --------PC product--------
 
 	rem --------Server product--------
 	rem SERVER Product 下载地址
 	rem 老系统专用杀毒软件,建议使用 v6.5
-	set path_server_old_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
-	set path_server_old_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
+	set path_server_old_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
+	set path_server_old_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
 	rem 建议使用最新版本
-	set path_server_late_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi
-	set path_server_late_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_later.msi
+	set path_server_late_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi
+	set path_server_late_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_later.msi
 	rem --------Server product--------
 
 	rem 追加参数,不需要则保持为空,PC 和 SERVER 版本共用同一个追加参数
@@ -142,11 +143,11 @@ if %absStatus%==False (
 
 	rem --------patch--------
 	rem 补丁文件 下载地址
-	set path_hotfix_kb4490628_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4490628_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4490628-x64.cab
 
-	set path_hotfix_kb4474419_x86=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4474419_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Tools/sha2cab/Windows6.1-KB4474419-v3-x64.cab
 	rem --------patch--------
 
 ) else (
