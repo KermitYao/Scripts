@@ -133,8 +133,10 @@ if ($(get-status) -eq "Running") {
 
 Write-Output " -- 停止 ${mysql_service_name}"
 Stop-Service ${mysql_service_name}
+
 if ($args -eq "test") {Read-Host "确认 MYSQL 服务器确认服务状态是否为 : [Stoppend]"}
-$mysqlSvrStatus=(get-service $mysql_service).Status
+$mysqlSvrStatus=(get-service $mysql_service_name).Status
+Write-Output " -- $mysql_service_name 当前状态: [$mysqlSvrStatus]"
 Start-Sleep $service_wait
 if (${mysqlSvrStatus} -eq "Stopped") {
     if ($args -eq "test") {
