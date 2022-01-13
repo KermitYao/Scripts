@@ -11,6 +11,7 @@
 ::* 2021-10-16 1.修复 -- 当在命令行模式工作并且在未找到配置文件时,现在会覆盖安装,并保留原有的host 和证书信息, 而非和gui模式一样弹出用户操作界面
 ::* 2021-10-29 1.更新 -- 修改部分描述,修正错别字
 ::* 2021-12-21 1.更新 -- 增加部分描述; 2.更新 -- 将下载地址更改为 files.yjyn.top:6080 避免老ie内核系统下载失败的问题
+::* 2022-01-13 1.更新 -- 修复x86电脑安装agent无法获取下载链接的bug.
 goto :begin
 ::-----readme-----
 
@@ -53,7 +54,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.5
+@rem version 1.1.6
 @echo off
 setlocal enabledelayedexpansion
 
@@ -440,7 +441,7 @@ if "#%argsAgent%"=="#True" (
 				set path_agent_late=%path_agent_late_x64%
 			) else (
 				set path_agent_old=%path_agent_old_x86%
-				set path_agent_late=%path_agent_late_x85%
+				set path_agent_late=%path_agent_late_x86%
 			)
 			if "#%argsEarly%"=="#True" set ntVerNumber=51
 			if !ntVerNumber! lss 61 (
