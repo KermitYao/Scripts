@@ -81,8 +81,8 @@ rem 设置初始变量
 
 rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
-set version_Agent=9.1
-set version_Product_eea=8.1
+set version_Agent=9.0
+set version_Product_eea=9.0
 set version_Product_efsw=8.0
 rem -------------------
 
