@@ -12,6 +12,7 @@
 ::* 2021-10-29 1.更新 -- 修改部分描述,修正错别字
 ::* 2021-12-21 1.更新 -- 增加部分描述; 2.更新 -- 将下载地址更改为 files.yjyn.top:6080 避免老ie内核系统下载失败的问题
 ::* 2022-01-13 1.更新 -- 修复x86电脑安装agent无法获取下载链接的bug.
+::* 2022-03-31 1.新增 -- 在使用 status 参数的时候,现在会增加ip地址列表和计算机名称的显示
 goto :begin
 ::-----readme-----
 
@@ -176,23 +177,23 @@ if %absStatus%==False (
 	rem --------PC product--------
 	rem PC Product 文件路径
 	rem 建议使用 v6.5
-	set path_pc_old_x86=CLIENT\PC\eea_nt32_chs_v6.5.msi
-	set path_pc_old_x64=CLIENT\PC\eea_nt64_chs_v6.5.msi
+	set path_pc_old_x86=PC\eea_nt32_chs_v6.5.msi
+	set path_pc_old_x64=PC\eea_nt64_chs_v6.5.msi
 
 	rem 建议使用最新版本
-	set path_pc_late_x86=CLIENT\PC\eea_nt32_v8.1.msi
-	set path_pc_late_x64=CLIENT\PC\eea_nt64_v8.1.msi
+	set path_pc_late_x86=PC\eea_nt32_v8.1.msi
+	set path_pc_late_x64=PC\eea_nt64_v8.1.msi
 	rem --------PC product--------
 
 	rem --------Server product--------
 	rem SERVER Product 文件路径
 	rem 建议使用 v6.5
-	set path_server_old_x86=CLIENT\Server\efsw_nt32_chs_v6.5.msi
-	set path_server_old_x64=CLIENT\Server\efsw_nt64_chs_v6.5.msi
+	set path_server_old_x86=Server\efsw_nt32_chs_v6.5.msi
+	set path_server_old_x64=Server\efsw_nt64_chs_v6.5.msi
 
 	rem 建议使用最新版本
-	set path_server_late_x86=CLIENT\Server\efsw_nt32_v8.0.msi
-	set path_server_late_x64=CLIENT\Server\efsw_nt64_v8.0.msi
+	set path_server_late_x86=Server\efsw_nt32_v8.0.msi
+	set path_server_late_x64=Server\efsw_nt64_v8.0.msi
 	rem --------Server product--------
 
 	rem 追加参数,不需要则保持为空,PC 和 SERVER 版本共用同一个追加参数
@@ -201,11 +202,11 @@ if %absStatus%==False (
 
 	rem --------patch--------
 	rem 补丁文件路径
-	set path_hotfix_kb4490628_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4490628-x86.cab
-	set path_hotfix_kb4490628_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4490628-x64.cab
+	set path_hotfix_kb4490628_x86=Tools\sha2cab\Windows6.1-KB4490628-x86.cab
+	set path_hotfix_kb4490628_x64=Tools\sha2cab\Windows6.1-KB4490628-x64.cab
 
-	set path_hotfix_kb4474419_x86=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
-	set path_hotfix_kb4474419_x64=CLIENT\Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
+	set path_hotfix_kb4474419_x86=Tools\sha2cab\Windows6.1-KB4474419-v3-x86.cab
+	set path_hotfix_kb4474419_x64=Tools\sha2cab\Windows6.1-KB4474419-v3-x64.cab
 	rem --------patch--------
 
 )
@@ -843,6 +844,11 @@ for /f "delims=[] tokens=2*" %%a in ('ver') do (
 	)
 )
 
+for /f "delims== tokens=2" %%a in ('wmic computersystem get name /value') do set "computerName=%%a"
+
+for /f "delims={}, " %%a in ('wmic nicconfig get ipaddress ') do  echo %%a|findstr [0-9] >nul&&set "ipList=!ipList! %%a"
+set ipList=!ipList:"=!
+
 set tm=
 if "#"=="#!sysVersion!" (
 	set returnValue=Null
@@ -927,9 +933,11 @@ call :getUac
 echo UAC权限:!uacStatus!
 
 call :getSysVer
+echo 计算机名称:!computerName!
 echo 系统版本:!sysVersion!
 echo NT内核版本:!ntVer!
 echo 系统类型:!sysType!
+echo IP 地址列表:!ipList!
 if not "#!sysVersion!"=="#WindowsXP" (
 	call :setSafeBoot status
 	echo 是否配置为安全模式:!safeModeStatus!
