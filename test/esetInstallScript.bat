@@ -13,6 +13,7 @@
 ::* 2021-12-21 1.更新 -- 增加部分描述; 2.更新 -- 将下载地址更改为 files.yjyn.top:6080 避免老ie内核系统下载失败的问题
 ::* 2022-01-13 1.更新 -- 修复x86电脑安装agent无法获取下载链接的bug.
 ::* 2022-03-31 1.新增 -- 在使用 status 参数的时候,现在会增加ip地址列表和计算机名称的显示
+::* 2022-04-04 1.新增 -- 状态信息现在会列出远程主机,用以判断连接的服务器是否正确; 2.更新 -- 优化获取 Agent 安装代码的速度, 提高整个脚本的运行效率
 goto :begin
 ::-----readme-----
 
@@ -962,6 +963,7 @@ echo Agent 安装名称:!productName!
 echo Agent 安装版本:!productVersion!
 echo Agent 安装路径:!productDir!
 echo Agent 安装代码:!productCode!
+echo Agent 远程主机:%remoteHost%
 if not "#!productCode!"=="#" set agentInstallStatus=True
 
 if "#!productInstallStatus!+!agentInstallStatus!"=="#True+True" (
@@ -1079,10 +1081,16 @@ if /i "#%~1"=="#Product" (
 	)
 ) else (
 	set keyValue="HKEY_LOCAL_MACHINE\SOFTWARE\ESET\RemoteAdministrator\Agent\CurrentVersion\Info"
-	for /f "delims={} tokens=2" %%a in ('wmic product list 2^>nul^| findstr /i /c:"ESET Management Agent"') do (
-		set "productCode={%%a}"
+	for /f "delims=" %%a in ('reg query HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Products') do (
+		for /f "delims=" %%x in ('reg query %%a /v ProductName ^| findstr /c:"ESET Management Agent" 2^>nul') do (
+			for /f "delims={} tokens=2" %%y in ('reg query %%a /v ProductIcon') do (
+				set "productCode={%%y}"
+			)
+		)
 	)
 )
+
+for /f "delims=:< tokens=4" %%a in ('findstr /r /c:"<li>Remote host:.*</li>" "C:\ProgramData\ESET\RemoteAdministrator\Agent\EraAgentApplicationData\Logs\status.html" 2^>nul') do set remoteHost=%%a
 
 for /f "tokens=2*" %%a in ('reg query %keyValue% /v ProductName 2^>nul') do (
 	set "productName=%%b"
