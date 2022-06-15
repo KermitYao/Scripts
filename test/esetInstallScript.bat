@@ -42,7 +42,7 @@ goto :begin
 	4.
 		set version_Agent=9.0
 		set version_Product_eea=9.0
-		set version_Product_efsw=8.0
+		set version_Product_efsw=9.0
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
 	5.本质上软件的安装是通过调用 msiexec 实现的,所以如果想自定义参数可以通过此参数实现: set "params_agent= password=eset1234." ,会指定一个密码,当然也可以用别的参数,比如指定安装时的语言，可以写入多个参数，以空格隔开即可
@@ -85,7 +85,7 @@ rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
 set version_Agent=9.0
 set version_Product_eea=9.0
-set version_Product_efsw=8.0
+set version_Product_efsw=9.0
 rem -------------------
 
 rem 如果路径为UNC或可访问路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用

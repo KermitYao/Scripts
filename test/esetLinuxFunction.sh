@@ -5,6 +5,7 @@
 ::* 系统支持(实际支持应该支持大部分deb和rpm包管理的系统): centos7 |centos8 [en_US.UTF-8 locale is not present:localedef -i en_US -f UTF-8 en_US.UTF-8]| centos 6.5 | ubuntu 20.4 | kali [en_US.UTF-8 locale is not present]
 ::* 前置第三方组件 curl | wget | tee
 ::* 2022-03-08 脚本完成
+::* 2022-06-09 修复无法正确验证安装状态
 
 快速使用:
 	修改62行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
@@ -42,7 +43,7 @@
 NOTES
 
 
-scriptVersion=1.0
+scriptVersion=1.1
 
 # ----------user var-----------------
 
@@ -64,14 +65,14 @@ productVersion_esets=4.5
 #如果路径为本地可访问路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
 #是否为本地路径或绝对可访问的路径
 #可用参数: True|False
-absStatus=True
+absStatus=False
 if [ "x$absStatus" != "xTrue" ]
 then
     #此处设置用于下载文件的地址
-    agentPath="https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/agent-linux-x86_64_later.sh/"
-    agentConfPath="https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/install_config.ini/"
-    productPath_efs="https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Server/efs.x86_64_later.bin/"
-    productPath_esets="https://yjyn.top:1443/ESET_Date/repository/com/eset/apps/business/es/linux/v4/4.5.16.0/esets_x86_64_enu.bin/"
+    agentPath="http://files.yjyn.top:6080//Company/YCH/EEAI/ESET/CLIENT/Agent/agent-linux-x86_64_later.sh"
+    agentConfPath="http://files.yjyn.top:6080//Company/YCH/EEAI/ESET/CLIENT/Agent/None"
+    productPath_efs="http://files.yjyn.top:6080//Company/YCH/EEAI/ESET/CLIENT/Server/efs.x86_64_later.bin"
+    productPath_esets="http://files.yjyn.top:6080//ESET_Date/repository/com/eset/apps/business/es/linux/v4/4.5.16.0/esets_x86_64_enu.bin"
 else
     #此处设置本地文件路径
     agentPath="bin/agent-linux-x86_64_later.sh"
@@ -126,7 +127,7 @@ Usage: $0 [options]
   -a,  --auto            Auto install Agent and Product
   -g,  --agent           Install Agent
   -p,  --product         Install Product
-  -b,  --before          Install old version Product (4.5)
+  -b,  --before          Install old version of Product (4.5)
   -n,  --undoAgent       Uninstall Agent
   -d,  --undoProduct     Uninstall Product
   -c,  --console         Enable local webconsole
@@ -600,7 +601,7 @@ printStatus() {
     echo 内核安装信息:
     $searchCommand *kernel*
     echo "脚本参数: ${args}"
-    if [ -n ${eraName} ] && [ -n ${productName} ]
+    if [ -n "${eraName}" ] && [ -n "${productName}" ]
     then
         echo "************** 软件安装正常 **************"
     else
@@ -714,7 +715,7 @@ main() {
     then
         printLog $LINENO INFO agentInstall "开始处理 Agent 安装..."
         getConfEra "${eraConfFile}"
-        test -z ${eraVersion} && eraVersion=0
+        test -z "${eraVersion}" && eraVersion=0
         tempAgentVersion="$(echo ${agentVersion} | awk -F. 'OFS="." {print $1,$2}')"
         tempEraVersion="$(echo ${eraVersion} | awk -F. 'OFS="." {print $1,$2}')"
 
@@ -852,9 +853,9 @@ main() {
                         productInstall "${localProductPath}" "${installMode}" | tee -a "${logPath}"
                         if [ "$?" = "0" ]
                         then
-                            printLog $LINENO WARNING installProduct "安全产品安装成功."
+                            printLog $LINENO INFO installProduct "安全产品安装成功."
                         else
-                            printLog $LINENO WARNING installProduct "安全产品安装失败."
+                            printLog $LINENO ERROR installProduct "安全产品安装失败."
                         fi
                     else
                         printLog $LINENO WARNING installProduct "未找到安装文件."
