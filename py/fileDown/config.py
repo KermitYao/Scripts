@@ -1,3 +1,7 @@
+from re import I
+
+
+I
 #This script is config file for "web.py"
 import os
 class Config():
@@ -187,3 +191,26 @@ class Config():
             },
 
         ]
+
+    ROUTE_360=[
+            {
+                'name':'360epp 控制台',
+                'protocol':'http',
+                'hosta':'https://192.168.16.194:9088',
+                'hostb':'http://yjyn.top:7515',
+                'user':'admin',
+                'passwd':'360Epp1234.',
+                'describe':'eset edr 控制台',                
+            },
+
+            {
+                'name':'360FW 控制台',
+                'protocol':'https',
+                'hosta':'http://192.168.17.250',
+                'hostb':'http://360fw.yjyn.top:6080',
+                'user':'admin',
+                'passwd':'360Fw1234.',
+                'describe':'360 防火墙控制台',                
+            },
+
+            ]

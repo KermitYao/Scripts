@@ -492,8 +492,8 @@ def login():
         return redirect(url_for('index',filepath='/'))
 
 #导航
-@app.route('/daohang/',methods=['GET','POST'])
-def daohang():
+@app.route('/dh/',methods=['GET','POST'])
+def dh():
     loginStatus=False
     if 'username' in session:
         loginStatus = True
@@ -503,7 +503,17 @@ def daohang():
         route = Config.ROUTE
         )
 
-
+#360导航
+@app.route('/dh360/',methods=['GET','POST'])
+def dh360():
+    loginStatus=True
+    #if 'username' in session:
+    #    loginStatus = True
+    return render_template(
+        'navigation.html',
+        loginStatus = loginStatus,
+        route = Config.ROUTE_360
+        )
 
 def testMsg(msg):
     print(msg)
