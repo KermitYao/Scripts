@@ -14,6 +14,8 @@
 ::* 2022-01-13 1.更新 -- 修复x86电脑安装agent无法获取下载链接的bug.
 ::* 2022-03-31 1.新增 -- 在使用 status 参数的时候,现在会增加ip地址列表和计算机名称的显示
 ::* 2022-04-04 1.新增 -- 状态信息现在会列出远程主机,用以判断连接的服务器是否正确; 2.更新 -- 优化获取 Agent 安装代码的速度, 提高整个脚本的运行效率
+::* 2022-05-26 1.修复 -- 获取 AGENT 信息时,报告无法找到注册表的问题
+
 goto :begin
 ::-----readme-----
 
@@ -41,7 +43,7 @@ goto :begin
 	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
 	4.
 		set version_Agent=9.0
-		set version_Product_eea=9.0
+		set version_Product_eea=9.1
 		set version_Product_efsw=9.0
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
@@ -56,7 +58,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.6
+@rem version 1.1.7
 @echo off
 setlocal enabledelayedexpansion
 
@@ -84,7 +86,7 @@ rem 设置初始变量
 rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
 set version_Agent=9.0
-set version_Product_eea=9.0
+set version_Product_eea=9.1
 set version_Product_efsw=9.0
 rem -------------------
 
@@ -1081,9 +1083,9 @@ if /i "#%~1"=="#Product" (
 	)
 ) else (
 	set keyValue="HKEY_LOCAL_MACHINE\SOFTWARE\ESET\RemoteAdministrator\Agent\CurrentVersion\Info"
-	for /f "delims=" %%a in ('reg query HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Products') do (
+	for /f "delims=" %%a in ('reg query HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Products 2^>nul') do (
 		for /f "delims=" %%x in ('reg query %%a /v ProductName ^| findstr /c:"ESET Management Agent" 2^>nul') do (
-			for /f "delims={} tokens=2" %%y in ('reg query %%a /v ProductIcon') do (
+			for /f "delims={} tokens=2" %%y in ('reg query %%a /v ProductIcon 2^>nul') do (
 				set "productCode={%%y}"
 			)
 		)
