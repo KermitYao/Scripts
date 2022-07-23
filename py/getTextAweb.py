@@ -1,19 +1,22 @@
 #-*- coding: utf-8 -*-
-import os,time,threading,re
+import os,time,threading,re, sqlite3, hashlib
 from urllib import request,parse
 from html.parser import HTMLParser
 
 #重写 HtmlParser 解析webUrl
 class WebHtmlParser(HTMLParser):
     listUrlTextWeb=[]
-    def handle_data(self,data):
-        self.data=data
+    flag = False
     def handle_starttag(self, tag, attrs):
         if tag == 'a':
             if re.match(r'^/.*/.*/\d+.html',attrs[0][1]):
-                self.listUrlTextWeb.append(attrs[0][1])
+                self.attrs = attrs
+                self.flag = True
 
-
+    def handle_data(self,data):
+        if self.flag:
+            self.listUrlTextWeb.append((self.attrs[0][1],data))
+            self.flag = False
 
 #重写 HtmlParser 解析textUrl
 class TextHtmlParser(HTMLParser):
@@ -42,15 +45,73 @@ class TextHtmlParser(HTMLParser):
         if tag.lower() == 'h1':
             self.textTitle=self.data
 
+#格式化时间
+def formatTime(times,type=1):
+    if times != None:
+        m=time.localtime(float(times))
+        tm={'year':m.tm_year,
+            'mon':m.tm_mon,
+            'mday':m.tm_mday,
+            'hour':m.tm_hour,
+            'min':m.tm_min,
+            'sec':m.tm_sec,
+        }
+        for v in tm:
+            if tm[v]<10:
+                tm[v]='0'+str(tm[v])
+            else:
+                tm[v]=str(tm[v])
+        if type == 1:
+            m='{}-{}-{} {}:{}:{}'.format(tm['year'],tm['mon'],tm['mday'],tm['hour'],tm['min'],tm['sec'])
+        elif type == 2:
+            m='{}{}{}{}{}{}'.format(tm['year'],tm['mon'],tm['mday'],tm['hour'],tm['min'],tm['sec'])
+        elif type == 3:
+            m='{}-{}-{}'.format(tm['year'],tm['mon'],tm['mday'])
+        return m
+    return None
 
+class SqliteTools():
+    def __init__(self):
+        self.dbName='test.db'
+        self.tableName='test'
+
+    def execute(self, sqliteCmd):
+        self.cursor.execute(sqliteCmd)
+        self.connectSqlite.commit()
+
+    def createTable(self):
+        self.connectSqlite = sqlite3.connect(self.dbName)
+        self.cursor = self.connectSqlite.cursor()
+        createTableCmd='''
+        CREATE TABLE IF NOT EXISTS {0}(
+            id INTEGER PRIMARY KEY  NOT NULL, 
+            name TEXT  NOT NULL, 
+            time TEXT, 
+            url TEXT, 
+            content TEXT,
+            md5 TEXT
+            )
+        '''.format(self.tableName)
+        self.execute(createTableCmd)
+
+    def dropTable(self):
+        dropTableCmd='DROP TABLE IF EXISTS {0}'.format(self.tableName)
+        self.execute(dropTableCmd)
+
+    def close(self):
+        self.cursor.close()
+        self.connectSqlite.close()
 
 def procecc():
     inurl=input('抓取网址:')
-    if not inurl:inurl='http://www.g4e3.com/AAtupian/AAAtb/asia/index-'
+    if not inurl:inurl='http://www.g4e3.com/AAbook/AAAtb/luanlunx/index-'
     incountx=input('开始页面:')
     if not incountx:incountx='2'
     incounty=input('结束页面:')
     if not incounty:incounty='20'
+    
+    infilen=input('写入文件名:')
+    if not infilen:infilen=str(time.time()).replace('.','')
     print('\n参数---Index:{},StartPage:{},EndPage:{}\n'.format(inurl,incountx,incounty))
     downTextDir = r'downText'
     threadMax=5
@@ -58,10 +119,16 @@ def procecc():
 
     webParser=WebHtmlParser()
     textParser=TextHtmlParser()
+    db = SqliteTools()
+    md5 = hashlib.md5()
     #建立下载目录
     if not os.path.exists(downTextDir):
         os.makedirs(downTextDir)
-    textP=open(os.path.join(downTextDir,str(time.time()).replace('.','')+'.txt'),'a+',encoding='utf-8')
+    textP=open(os.path.join(downTextDir,infilen+'.txt'),'a+',encoding='utf-8')
+    db.dbName = os.path.join(downTextDir,infilen+'.db')
+    db.tableName = infilen
+    db.createTable()
+
     #主要过程    
     for page in range(int(incountx),int(incounty)):
         url = inurl+str(page)+'.html'
@@ -81,29 +148,39 @@ def procecc():
         except Exception  as exeption:
             print('UrlWeb:{},RequestError:{}'.format(url,exeption))
             webParser.listUrlTextWeb=[]
-
-        for urlText in webParser.listUrlTextWeb:
-
+        for urlText, urlTitle in webParser.listUrlTextWeb:
+            dbSelect = 'select name from {0} where name="{1}"'.format(db.tableName, urlTitle)
+            db.execute(dbSelect)
+            dbContent = db.cursor.fetchall()
             urlTextWeb=parse.urljoin(urlParse.scheme+'://'+urlParse.netloc,urlText)
-            print('\turlRequestText:{}'.format(urlTextWeb))
-            try:
-                with request.urlopen(urlTextWeb) as urlP:
-                    urlTextData=urlP.read()
-                    textParser.ClearVar()
-                    textParser.feed(str(urlTextData))
-                    encoding=textParser.encoding
-                    textParser.ClearVar()
-                    textParser.feed(urlTextData.decode(encoding))
-                    if textParser.textTitle != 'No Title':
-                        textP.write('\n\t\t\t第 {} 章 '.format(str(countName))+textParser.textTitle)
-                        textP.write(textParser.dataText)
-                        countName+=1
-            except Exception  as exeption:
-                print('\turlRequestText:{},RequestError:{}'.format(urlTextWeb,exeption))
+            if len(dbContent) == 0:
+                print('\turlRequestText:{}'.format(urlTextWeb))
+                try:
+                    with request.urlopen(urlTextWeb) as urlP:
+                        urlTextData=urlP.read()
+                        textParser.ClearVar()
+                        textParser.feed(str(urlTextData))
+                        encoding=textParser.encoding
+                        textParser.ClearVar()
+                        textParser.feed(urlTextData.decode(encoding))
+                        if textParser.textTitle != 'No Title':
+                            md5.update(textParser.dataText.encode('utf-8'))
+                            dbInsert = 'INSERT INTO {5} ("name", "time", "url", "content", "md5") VALUES ("{0}", "{1}","{2}","{3}", "{4}" )'.format(textParser.textTitle, formatTime(time.time()), urlTextWeb, textParser.dataText, md5.hexdigest(), db.tableName)
+                            db.execute(dbInsert)
+                            textP.write('\n\t\t\t第 {} 章 '.format(str(countName))+textParser.textTitle)
+                            textP.write(textParser.dataText)
+                            countName+=1
+                except Exception  as exeption:
+                    print('\turlRequestText:{},RequestError:{}'.format(urlTextWeb,exeption))
+            else:
+                print('\turlRequestText:{}'.format(urlTextWeb))
+                print('\t\t 数据库中存在相应的条目: {0}'.format(urlTitle))
+
         #清空 Web 列表      
         webParser.listUrlTextWeb=[]
 
     textP.close()
+    db.close
     print('Text All Grab OK!')
 
 
