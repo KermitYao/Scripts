@@ -6,6 +6,7 @@
 ::* 前置第三方组件 curl | wget | tee
 ::* 2022-03-08 脚本完成
 ::* 2022-06-09 修复无法正确验证安装状态
+::* 2022-07-22 1.修复安装状态提示不准确， 2.修复agent安装总是提示用户输入配置信息的错误，3.修复获取状态时，产品版本无法显示的问题， 4.增加对非管理员权限运行的提示
 
 快速使用:
 	修改62行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
@@ -31,7 +32,7 @@
 	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
 	4.
 		agentVersion=9.0
-		productVersion_efs=8.1
+		productVersion_efs=9.0
 		productVersion_esets=4.5
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
@@ -43,7 +44,7 @@
 NOTES
 
 
-scriptVersion=1.1
+scriptVersion=1.2
 
 # ----------user var-----------------
 
@@ -59,7 +60,7 @@ logLevel="DEBUG"
 #已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 #版本号只计算两位，超过两位数会计算出错。
 agentVersion=9.0
-productVersion_efs=8.1
+productVersion_efs=9.0
 productVersion_esets=4.5
 
 #如果路径为本地可访问路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
@@ -70,7 +71,7 @@ if [ "x$absStatus" != "xTrue" ]
 then
     #此处设置用于下载文件的地址
     agentPath="http://files.yjyn.top:6080//Company/YCH/EEAI/ESET/CLIENT/Agent/agent-linux-x86_64_later.sh"
-    agentConfPath="http://files.yjyn.top:6080//Company/YCH/EEAI/ESET/CLIENT/Agent/None"
+    agentConfPath="https://yjyn.top:1443/Company/YCH/EEAI/ESET/CLIENT/Agent/None"
     productPath_efs="http://files.yjyn.top:6080//Company/YCH/EEAI/ESET/CLIENT/Server/efs.x86_64_later.bin"
     productPath_esets="http://files.yjyn.top:6080//ESET_Date/repository/com/eset/apps/business/es/linux/v4/4.5.16.0/esets_x86_64_enu.bin"
 else
@@ -111,6 +112,8 @@ logPath="${tempPath}/$(basename $0).log"
 eraDir="/opt/eset/RemoteAdministrator/Agent"
 eraConfFile="/etc/opt/eset/RemoteAdministrator/Agent/config.cfg"
 argsList="argsHelp argsAll argsAuto argsBefore argsAgent argsProduct argsUndoAgent argsUndoProduct argsConsole argsStatusInfo argsLog argsRemove argsGui argsUnpack argsProxy"
+
+userID=$(id -u)
 
 # ----------sys var-----------------
 
@@ -241,8 +244,8 @@ enableProxy() {
 enableGui() {
     if [ -f "/opt/eset/efs/sbin/setgui" ]
     then
-        /opt/eset/efs/sbin/setgui -p eset1234. -r -e
-        return 0
+        /opt/eset/efs/sbin/setgui -p eset1234. -r -e >>"${logPath}"
+        return $?
     else
         return 1
     fi
@@ -275,11 +278,11 @@ getPackageType() {
     elif [ -f /etc/debian_version ]; then
             DEB_BASED=1
     fi
-
+    
     if [[ "$RPM_BASED" = "0" && "$DEB_BASED" = "0" ]]
     then
-        command -v rpm && RPM_BASED=1
-        command -v dpkg && DEB_BASED=1
+        command -v rpm >/dev/null&& RPM_BASED=1
+        command -v dpkg >/dev/null && DEB_BASED=1
     else
         return 1
     fi
@@ -288,7 +291,7 @@ getPackageType() {
 
 #获取产品版本;传入参数: $1 = 包类型 $2 = 软件名称
 getProductVersion() {
-    if [ "$1" = "dpkg" ]
+    if [ "$1" = "deb" ]
     then
         currentProductVersion="$(dpkg-query --showformat='${Version}' --show "$2" 2>/dev/null)"
         echo ${currentProductVersion:0:1} | grep '[0-9]' >/dev/null || currentProductVersion="0.0001"
@@ -319,6 +322,7 @@ getConfEra()
 #文件下载;传入参数: $1 = url, $2 = filePath
 fileDownload() {
     rm -f "$2"
+    result=1
     (wget --connect-timeout 300 --no-check-certificate -O "$2" "$1" || curl --fail --connect-timeout 300 -k "$1" > "$2")&&result=0
 
     if [ "${result}" = "0" ]
@@ -337,7 +341,7 @@ unpackEfs() {
         pushd ${tempPath} >/dev/null
         printLog $LINENO INFO unpackEfsProduct "解包 efs 安装文件..."
         packageName=$(/bin/sh "$1" -n -y | grep -E "^efs-.*\.${packageType}")
-        popd >nul
+        popd >null
         return 0
     else
         return 1
@@ -486,7 +490,7 @@ installAgent()
 	   	--disable-imp-program \
 		$(test -n "$localCaPath" && echo --cert-auth-path "$localCaPath")\
    		$(test -n "$P_CUSTOM_POLICY" && echo --custom-policy "$P_CUSTOM_POLICY")\
-		$(test -n "$P_PROXY_HTTP_HOSTNAME" && test -n "$P_PROXY_HTTP_PORT" && echo --proxy-hostname "$P_PROXY_HTTP_HOSTNAME" --proxy-port "$P_PROXY_HTTP_PORT")
+		$(test -n "$P_PROXY_HTTP_HOSTNAME" && test -n "$P_PROXY_HTTP_PORT" && echo --proxy-hostname "$P_PROXY_HTTP_HOSTNAME" --proxy-port "$P_PROXY_HTTP_PORT") 
 		return $?
 	else
 		/bin/sh $1 \
@@ -561,7 +565,6 @@ printStatus() {
         packageType="unknown"
     fi
 
-
     getConfEra ${eraConfFile}
     echo "Agent name: ${eraName}"
     echo "Agent version: ${eraVersion}"
@@ -573,8 +576,8 @@ printStatus() {
     then
         if [ -f  "/opt/eset/efs/sbin/startd" ]
         then
+            getProductVersion "${packageType}" "efs"
             productName="efs"
-            getProductVersion ${packageType} efs
             productDirectory="/opt/eset/efs"
             currentProductVersion="$(echo "${currentProductVersion}" | awk -F. 'OFS="." {print $1,$2}')"
         fi
@@ -654,153 +657,42 @@ main() {
     if [ "$argsUndoAgent" = "1" ]
     then
         printLog $LINENO WARNING uninstallAgent "卸载 Agent."
-        if [ ! -f "${eraDir}/setup/uninstall.sh" ]
-        then
-            printLog $LINENO INFO uninstallAgent "Agent 未安装,无需卸载."
-        else
-            uninstallAgent "${eraDir}/setup/uninstall.sh" | tee -a "${logPath}"
-            if [ "$?" = "0" ]
+        if [ "${userID}" = "0" ]
             then
-                printLog $LINENO INFO uninstallAgent "Agent 卸载成功."
+            if [ ! -f "${eraDir}/setup/uninstall.sh" ]
+            then 
+                printLog $LINENO INFO uninstallAgent "Agent 未安装,无需卸载."
             else
-                printLog $LINENO ERROR uninstallAgent "Agent 卸载失败."
+                uninstallAgent "${eraDir}/setup/uninstall.sh"
+                if [ "$?" = "0" ]
+                then
+                    printLog $LINENO INFO uninstallAgent "Agent 卸载成功."
+                else
+                    printLog $LINENO ERROR uninstallAgent "Agent 卸载失败."
+                fi
             fi
+        else
+             printLog $LINENO ERROR uninstallAgent “你必须要以root身份运行此脚本,才能正常使用这些功能”
         fi
     fi
 
     #卸载 Product
     if [ "${argsUndoProduct}" = "1" ]
     then
-        sysVersion="$(uname -r | awk -F. 'OFS="." {print $1,$2}')"
-        if [ "${argsBefore}" = "1" ]
-        then
-            sysVersion=0
-        fi
-        getPackageType
-        if [ "$DEB_BASED" = "1" ]
-        then
-            packageType="deb"
-            installCommand="apt-get install -y"
-            uninstallCommand="dpkg -r"
-
-        elif [ "$RPM_BASED" = "1" ]
-        then
-            packageType="rpm"
-            installCommand="yum install -y"
-            uninstallCommand="rpm -e"
-        else
-            packageType="unknown"
-        fi
-        
-        if [ "$(echo "$sysVersion 3.10"|awk '{if($1 >= $2) print 1}')" = "1" ]
-        then
-            installMode="p"
-            getProductVersion "${packageType}" "efs"
-        else
-            installMode="s"
-            getProductVersion  "${packageType}" "esets"
-        fi
         printLog $LINENO INFO uninstallProduct "卸载安全产品..."
-        productUninstall "efs" "${installMode}" | tee -a "${logPath}"
-        if [ "$?" = "0" ]
-        then
-            printLog $LINENO INFO uninstallProduct "卸载安全产品成功."
-        else
-            printLog $LINENO INFO uninstallProduct "卸载安全产品失败."
-        fi
-    fi
-
-    #安装 Agent
-    if [ "$argsAgent" = "1" ]
-    then
-        printLog $LINENO INFO agentInstall "开始处理 Agent 安装..."
-        getConfEra "${eraConfFile}"
-        test -z "${eraVersion}" && eraVersion=0
-        tempAgentVersion="$(echo ${agentVersion} | awk -F. 'OFS="." {print $1,$2}')"
-        tempEraVersion="$(echo ${eraVersion} | awk -F. 'OFS="." {print $1,$2}')"
-
-        
-
-        if [ "$(echo "$tempAgentVersion $tempEraVersion"|awk '{if($1 > $2) print 1}')" = "1" ]
-        then
-            if [ "$absStatus" = "True" ]
-            then
-                printLog $LINENO DEBUG agentInstall "使用本地配置文件安装 Agent."
-                localAgentPath="${scriptDir}/${agentPath}"
-                localAgentConfPath="${scriptDir}/${agentConfPath}"
-            else
-                printLog $LINENO INFO agentDowanload "下载 Agent 安装文件..."
-                fileDownload  "${agentPath}" "${tempPath}/agent.sh"
-                if [ "$?" = "0" ]
-                then
-                    printLog $LINENO DEBUG installAgent "Agent 下载成功"
-                    localAgentPath="${tempPath}/agent.sh"
-                    printLog $LINENO INFO installAgent "下载 Agent 配置文件中..."
-                    fileDownload "${agentConfPath}" "${tempPath}/agentConf.ini"
-                    if [ "$?" = "0" ]
-                    then
-                        printLog $LINENO DEBUG installAgent "Agent 配置文件下载成功"
-                        localAgentConfPath="${tempPath}/agnetConf.ini"
-                    else
-                        printLog $LINENO WARNING installAgent "Agent 配置文件下载失败"
-                    fi
-
-                else
-                    printLog $LINENO ERROR installAgent "Agent 下载失败"
-                fi
-            fi
-
-            printLog $LINENO INFO installAgent "读取 Agent 配置文件"
-            getConfValue "${localAgentConfPath}"
-            if [ "$?" = "0" ]
-            then
-                printLog $LINENO INFO installAgent "通过配置文件安装 Agent"
-                installAgent "${localAgentPath}" cert
-                if [ "$?" = "0" ]
-                then
-                    printLog $LINENO INFO installAgent "Agent 安装状态是:[成功]"
-                else
-                    printLog $LINENO INFO installAgent "Agent 安装状态是:[失败]"
-                fi
-            else
-                printLog $LINENO WARNING readConfiguratin "读取用户输入信息,以安装 Agent"
-                readUserInput
-                printLog $LINENO INFO installAgent "通过用户输入参数来安装 Agent."
-                installAgent "${localAgentPath}" password | tee -a "${logPath}"
-                if [ "$?" = "0" ]
-                then
-                    printLog $LINENO INFO installAgent "Agent 安装状态是:[成功]"
-                else
-                    printLog $LINENO INFO installAgent "Agent 安装状态是:[失败]"
-                fi
-            fi
-        else
-            printLog $LINENO INFO installAgent "当前已安装的 Agent 版本大于或者等于需要安装的版本."
-        fi
-    fi 
-
-
-    #安装 Product
-    if [ "${argsProduct}" = "1" ]
-    then
-        printLog $LINENO INFO productInstall "开始处理安全产品安装..."
-        arch=$(uname -m)
-        if $(echo "$arch" | grep -E "^(x86_64|amd64)$" > /dev/null 2>&1)
+        if [ "${userID}" = "0" ]
         then
             sysVersion="$(uname -r | awk -F. 'OFS="." {print $1,$2}')"
             if [ "${argsBefore}" = "1" ]
             then
                 sysVersion=0
             fi
-
-            [ "${argsBefore}" = "1" ] && sysVersion="0"
-
             getPackageType
             if [ "$DEB_BASED" = "1" ]
             then
                 packageType="deb"
                 installCommand="apt-get install -y"
-                uninstallCommand="dpkg -r"
+                uninstallCommand="dpkg -P"
 
             elif [ "$RPM_BASED" = "1" ]
             then
@@ -810,64 +702,198 @@ main() {
             else
                 packageType="unknown"
             fi
+            
             if [ "$(echo "$sysVersion 3.10"|awk '{if($1 >= $2) print 1}')" = "1" ]
             then
-                tempProductPath=${productPath_efs}
                 installMode="p"
-                installProductVersion="$(echo "${productVersion_efs}" | awk -F. 'OFS="." {print $1,$2}')"
-                getProductVersion ${packageType} efs
-                currentProductVersion="$(echo "${currentProductVersion}" | awk -F. 'OFS="." {print $1,$2}')"
+                getProductVersion "${packageType}" "efs"
             else
-                tempProductPath=${productPath_esets}
                 installMode="s"
-                installProductVersion="$(echo "${productVersion_esets}" | awk -F. 'OFS="." {print $1,$2}')"
-                getProductVersion  ${packageType} esets
-                currentProductVersion="$(echo "${currentProductVersion}" | awk -F. 'OFS="." {print $1,$2}')"
-                
+                getProductVersion  "${packageType}" "esets"
             fi
-            test -z "${installProductVersion}" && installProductVersion=0
-            if [ "${RPM_BASED}${DEB_BASED}" != "00" ]
-            then 
-
-                if [ "$(echo "${installProductVersion} ${currentProductVersion}"|awk '{if($1 > $2) print 1}')" = "1" ]
-                then
-
-                    if [ "$absStatus" != "True" ]
-                    then
-                        printLog $LINENO INFO productDowanload "开始下载安全产品安装文件: [${tempProductPath}]"
-                        fileDownload  "${tempProductPath}" "${tempPath}/product.bin"
-                        if [ "$?" = "0" ]
-                        then
-                            printLog $LINENO DEBUG productDowanload "安全产品下载成功"
-                            localProductPath="${tempPath}/product.bin"
-                        else
-                            printLog $LINENO ERROR productDowanload "安全产品下载失败."
-                        fi
-                    else
-                        localProductPath=${scriptDir}/${tempProductPath}
-                    fi
-
-                    if [ -s "${localProductPath}" ]
-                    then
-                        printLog $LINENO INFO installProduct "开始安装安全产品..."
-                        productInstall "${localProductPath}" "${installMode}" | tee -a "${logPath}"
-                        if [ "$?" = "0" ]
-                        then
-                            printLog $LINENO INFO installProduct "安全产品安装成功."
-                        else
-                            printLog $LINENO ERROR installProduct "安全产品安装失败."
-                        fi
-                    else
-                        printLog $LINENO WARNING installProduct "未找到安装文件."
-                    fi
-                else
-                    printLog $LINENO INFO installProduct "当前已安装的安全产品版本大于或者等于需要安装的版本."
-                fi
+            productUninstall "efs" "${installMode}"
+            if [ "$?" = "0" ]
+            then
+                printLog $LINENO INFO uninstallProduct "卸载安全产品成功."
             else
-                printLog $LINENO WARNING installProduct "无法确定当前系统的包管理工具."
+                printLog $LINENO INFO uninstallProduct "卸载安全产品失败."
             fi
         else
-            printLog $LINENO WARNING installProduct "此脚本不支持当前系统平台: $arch ."
+            printLog $LINENO ERROR uninstallProduct “你必须要以root身份运行此脚本,才能正常使用这些功能”
+        fi
+    fi
+
+    #安装 Agent
+    if [ "$argsAgent" = "1" ]
+    then
+        printLog $LINENO INFO agentInstall "开始处理 Agent 安装..."
+        if [ "${userID}" = "0" ]
+        then
+            getConfEra "${eraConfFile}"
+            test -z "${eraVersion}" && eraVersion=0
+            tempAgentVersion="$(echo ${agentVersion} | awk -F. 'OFS="." {print $1,$2}')"
+            tempEraVersion="$(echo ${eraVersion} | awk -F. 'OFS="." {print $1,$2}')"
+
+            if [ "$(echo "$tempAgentVersion $tempEraVersion"|awk '{if($1 > $2) print 1}')" = "1" ]
+            then
+                if [ "$absStatus" = "True" ]
+                then
+                    printLog $LINENO DEBUG agentInstall "使用本地配置文件安装 Agent."
+                    localAgentPath="${scriptDir}/${agentPath}"
+                    localAgentConfPath="${scriptDir}/${agentConfPath}"
+                else
+                    printLog $LINENO INFO agentDowanload "下载 Agent 安装文件..."
+                    fileDownload  "${agentPath}" "${tempPath}/agent.sh"
+                    if [ "$?" = "0" ]
+                    then
+                        printLog $LINENO DEBUG installAgent "Agent 下载成功"
+                        localAgentPath="${tempPath}/agent.sh"
+                        agentDownStatus=0
+                        printLog $LINENO INFO installAgent "下载 Agent 配置文件中..."
+                        fileDownload "${agentConfPath}" "${tempPath}/agentConf.ini"
+                        if [ "$?" = "0" ]
+                        then
+                            printLog $LINENO DEBUG installAgent "Agent 配置文件下载成功"
+                            localAgentConfPath="${tempPath}/agentConf.ini"
+                        else
+                            printLog $LINENO WARNING installAgent "Agent 配置文件下载失败"
+                        fi
+
+                    else
+                        printLog $LINENO ERROR installAgent "Agent 下载失败"
+                    fi
+                fi
+            
+                if [ "${agentDownStatus}" = "0" ]
+                then
+                    printLog $LINENO INFO installAgent "读取 Agent 配置文件"
+                    echo "${localAgentConfPath}"
+                    getConfValue "${localAgentConfPath}"
+                    if [ "$?" = "0" ]
+                    then
+                        printLog $LINENO INFO installAgent "通过配置文件安装 Agent"
+                        installAgent "${localAgentPath}" cert
+                        if [ "$?" = "0" ]
+                        then
+                            printLog $LINENO INFO installAgent "Agent 安装状态是:[成功]"
+                        else
+                            printLog $LINENO INFO installAgent "Agent 安装状态是:[失败]"
+                        fi
+                    else
+                        printLog $LINENO WARNING readConfiguratin "读取用户输入信息,以安装 Agent"
+                        readUserInput
+                        echo
+                        printLog $LINENO INFO installAgent "通过用户输入参数来安装 Agent."
+                        installAgent "${localAgentPath}" password
+                        if [ "$?" = "0" ]
+                        then
+                            printLog $LINENO INFO installAgent "Agent 安装状态是:[成功]"
+                        else
+                            printLog $LINENO INFO installAgent "Agent 安装状态是:[失败]"
+                        fi
+                    fi
+                fi
+            else
+                printLog $LINENO INFO installAgent "当前已安装的 Agent 版本大于或者等于需要安装的版本."
+            fi
+        else
+            printLog $LINENO ERROR installAgent “你必须要以root身份运行此脚本,才能正常使用这些功能”
+        fi
+    fi 
+
+    #安装 Product
+    if [ "${argsProduct}" = "1" ]
+    then
+        printLog $LINENO INFO productInstall "开始处理安全产品安装..."
+        if [ "${userID}" = "0" ]
+        then
+            arch=$(uname -m)
+            if $(echo "$arch" | grep -E "^(x86_64|amd64)$" > /dev/null 2>&1)
+            then
+                sysVersion="$(uname -r | awk -F. 'OFS="." {print $1,$2}')"
+                if [ "${argsBefore}" = "1" ]
+                then
+                    sysVersion=0
+                fi
+
+                [ "${argsBefore}" = "1" ] && sysVersion="0"
+
+                getPackageType
+                if [ "$DEB_BASED" = "1" ]
+                then
+                    packageType="deb"
+                    installCommand="apt-get install -y"
+                    uninstallCommand="dpkg -r"
+
+                elif [ "$RPM_BASED" = "1" ]
+                then
+                    packageType="rpm"
+                    installCommand="yum install -y"
+                    uninstallCommand="rpm -e"
+                else
+                    packageType="unknown"
+                fi
+                if [ "$(echo "$sysVersion 3.10"|awk '{if($1 >= $2) print 1}')" = "1" ]
+                then
+                    tempProductPath=${productPath_efs}
+                    installMode="p"
+                    installProductVersion="$(echo "${productVersion_efs}" | awk -F. 'OFS="." {print $1,$2}')"
+                    getProductVersion ${packageType} efs
+                    currentProductVersion="$(echo "${currentProductVersion}" | awk -F. 'OFS="." {print $1,$2}')"
+                else
+                    tempProductPath=${productPath_esets}
+                    installMode="s"
+                    installProductVersion="$(echo "${productVersion_esets}" | awk -F. 'OFS="." {print $1,$2}')"
+                    getProductVersion  ${packageType} esets
+                    currentProductVersion="$(echo "${currentProductVersion}" | awk -F. 'OFS="." {print $1,$2}')"
+                    
+                fi
+                test -z "${installProductVersion}" && installProductVersion=0
+                if [ "${RPM_BASED}${DEB_BASED}" != "00" ]
+                then 
+
+                    if [ "$(echo "${installProductVersion} ${currentProductVersion}"|awk '{if($1 > $2) print 1}')" = "1" ]
+                    then
+
+                        if [ "$absStatus" != "True" ]
+                        then
+                            printLog $LINENO INFO productDowanload "开始下载安全产品安装文件: [${tempProductPath}]"
+                            fileDownload  "${tempProductPath}" "${tempPath}/product.bin"
+                            if [ "$?" = "0" ]
+                            then
+                                printLog $LINENO DEBUG productDowanload "安全产品下载成功"
+                                localProductPath="${tempPath}/product.bin"
+                            else
+                                printLog $LINENO ERROR productDowanload "安全产品下载失败."
+                            fi
+                        else
+                            localProductPath=${scriptDir}/${tempProductPath}
+                        fi
+
+                        if [ -s "${localProductPath}" ]
+                        then
+                            printLog $LINENO INFO installProduct "开始安装安全产品..."
+                            productInstall "${localProductPath}" "${installMode}"
+                            if [ "$?" = "0" ]
+                            then
+                                printLog $LINENO INFO installProduct "安全产品安装成功."
+                            else
+                                printLog $LINENO ERROR installProduct "安全产品安装失败."
+                            fi
+                        else
+                            printLog $LINENO WARNING installProduct "未找到安装文件."
+                        fi
+                    else
+                        printLog $LINENO INFO installProduct "当前已安装的安全产品版本大于或者等于需要安装的版本."
+                    fi
+                else
+                    printLog $LINENO WARNING installProduct "无法确定当前系统的包管理工具."
+                fi
+            else
+                printLog $LINENO WARNING installProduct "此脚本不支持当前系统平台: $arch ."
+            fi
+        else
+            printLog $LINENO ERROR installProduct “你必须要以root身份运行此脚本,才能正常使用这些功能”
         fi
     fi
 
@@ -875,7 +901,18 @@ main() {
     if [ "${argsConsole}" = "1" ]
     then
         printLog $LINENO INFO enableGui "开启 EFS 本机控制台管理界面."
-        enableGui
+        if [ "${userID}" = "0" ]
+        then
+            enableGui
+            if [ "$?" = "0" ]
+            then
+                printLog $LINENO INFO enableGui "开启 EFS 本机控制台管理界面成功."
+            else
+                printLog $LINENO WARNING enableGui "开启 EFS 本机控制台管理界面失败."
+            fi
+        else
+            printLog $LINENO ERROR enableGui “你必须要以root身份运行此脚本,才能正常使用这些功能”
+        fi
     fi
 
     #获取系统状态
