@@ -15,6 +15,7 @@
 ::* 2022-03-31 1.新增 -- 在使用 status 参数的时候,现在会增加ip地址列表和计算机名称的显示
 ::* 2022-04-04 1.新增 -- 状态信息现在会列出远程主机,用以判断连接的服务器是否正确; 2.更新 -- 优化获取 Agent 安装代码的速度, 提高整个脚本的运行效率
 ::* 2022-05-26 1.修复 -- 获取 AGENT 信息时,报告无法找到注册表的问题
+::* 2022-10-21 1.新增 -- 现在可以通过指定参数来自动搜索第三方软件的卸载程序，进行卸载了(--avUninst).
 
 goto :begin
 ::-----readme-----
@@ -42,7 +43,7 @@ goto :begin
 	2.可以使用参数 -h | -help 来查看支持的参数
 	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
 	4.
-		set version_Agent=9.0
+		set version_Agent=9.1
 		set version_Product_eea=9.1
 		set version_Product_efsw=9.0
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
@@ -58,7 +59,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.7
+@rem version 1.1.8
 @echo off
 setlocal enabledelayedexpansion
 
@@ -76,7 +77,7 @@ set DEBUG=False
 set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 rem 解析参数列表
-set argsList=argsHelp argsAll argsEarly argsHotfix argsProduct argsAgent argsUndoAgent argsUndoProduct argsEntrySafeMode argsExitSafeMode argsSysStatus argsEsetLog argsForce argsLog argsRemove argsGui
+set argsList=argsHelp argsAll argsEarly argsHotfix argsProduct argsAgent argsUndoAgent argsUndoProduct argsEntrySafeMode argsExitSafeMode argsSysStatus argsEsetLog argsForce argsLog argsRemove argsGui argsAvUninst
 ::----------------------------------
 
 rem ----------- init -----------
@@ -85,7 +86,7 @@ rem 设置初始变量
 
 rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
-set version_Agent=9.0
+set version_Agent=9.1
 set version_Product_eea=9.1
 set version_Product_efsw=9.0
 rem -------------------
@@ -97,6 +98,13 @@ set absStatus=False
 rem 如果是共享目录可以设置账号密码，来首先建立ipc$连接，然后在使用UNC路径方式调用。如果为空则不进行IPC$连接。
 set shareUser=
 set sharePwd=
+
+
+rem 用于启动第三方杀毒软件卸载程序,本质是搜索注册表键值,如果存在相应的键值,则启动卸载程序
+rem 以键的方式配置, "产品名称:注册表键值名称"
+set avList= "360安全卫士:360安全卫士" "360杀毒:360安全卫士" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "微信:WeChat"
+set registryKey="HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall" "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+set registryValue="UninstallString"
 
 rem 此处设置用于下载文件的地址
 if %absStatus%==False (
@@ -323,6 +331,27 @@ if "#%argsexitSafeMode%"=="#True" (
 	)	
 )
 
+
+rem 卸载第三方安全软件
+if "#%argsAvUninst%"=="#True" (
+	call :writeLog INFO avUninstl "开始处理第三方杀毒软件卸载..." True True
+	if "#!uacStatus!"=="#True" (
+		call :writeLog INFO avUninst "开始扫描第三方安全软件..." True True
+		call :avUninst
+		if "!avUninstFlag!"=="" (
+			call :writeLog INFO avUninst "脚本已完成,未扫描到启动安全软件." True True
+		) else (
+			call :writeLog INFO avUninst "脚本已完成, 请手动点击卸载程序选项进行卸载..." True True
+			if "#%argsGui%"=="#True" (
+				call :writeLog INFO avUninst "按任意键进行下一步操作." True True
+				pause >nul
+			) 
+		)
+	) else (
+		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		set exitCode=96
+	)		
+)
 
 rem 卸载 Agent
 if "#%argsUndoAgent%"=="#True" (
@@ -656,6 +685,7 @@ echo  -s,	--status	[optional] Check status
 echo  -f,	--force		[optional] Skip some checks
 echo  -l,	--log		[optional] Disable log
 echo  -r,	--remove	[optional] Remove downloaded files
+echo  --avUninst		[optional] Remove antivirus of other
 echo  -u,	--gui		[optional] Like GUI show
 echo.
 echo		Example:%~nx0 -o --agent -l --remove
@@ -783,6 +813,8 @@ for %%a in (%*) do (
 
 	if /i "#%%a"=="#-u" set argsGui=True
 	if /i "#%%a"=="#--gui" set argsGui=True
+
+	if /i "#%%a"=="#--avUninst" set argsAvUninst=True
 	)
 )
 for %%a in (%argsList%) do (
@@ -793,6 +825,23 @@ goto :eof
 ::多重变量获取
 :getVar
 set %1=!%2!
+goto :eof
+
+rem 卸载第三方杀毒软件
+:avUninst
+for %%a in (%avList%) do (
+	for /f "delims=: tokens=1*" %%b in (%%a) do (
+		for %%d in (%registryKey%) do (
+			for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
+				if not "%%~g"=="" (
+					set avUninstFlag=True
+					call :writeLog INFO avUninst "启动【%%b】卸载程序: %%~g" True True
+					start /b "avUninst" "%%~g"
+				)
+			)
+		)
+	)
+)
 goto :eof
 
 rem 配置为进入或退出安全模式; 传入参数:%1 = entry | exit |status ;例：call :setSafeBoot entry; 返回值: returnValue = True | False,当传入参数为: status 时以下变量将被赋值:safeModeStatus=False|True
