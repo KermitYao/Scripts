@@ -934,3 +934,4 @@ main() {
 }
 
 main
+exit $?

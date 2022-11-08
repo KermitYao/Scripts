@@ -16,6 +16,8 @@
 ::* 2022-04-04 1.新增 -- 状态信息现在会列出远程主机,用以判断连接的服务器是否正确; 2.更新 -- 优化获取 Agent 安装代码的速度, 提高整个脚本的运行效率
 ::* 2022-05-26 1.修复 -- 获取 AGENT 信息时,报告无法找到注册表的问题
 ::* 2022-10-21 1.新增 -- 现在可以通过指定参数来自动搜索第三方软件的卸载程序，进行卸载了(--avUninst).
+::* 2022-10-28 1.修复 -- 增加对金山毒霸的卸载; 2.优化脚本的启动速度
+
 
 goto :begin
 ::-----readme-----
@@ -59,7 +61,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.8
+@rem version 1.1.9
 @echo off
 setlocal enabledelayedexpansion
 
@@ -102,7 +104,7 @@ set sharePwd=
 
 rem 用于启动第三方杀毒软件卸载程序,本质是搜索注册表键值,如果存在相应的键值,则启动卸载程序
 rem 以键的方式配置, "产品名称:注册表键值名称"
-set avList= "360安全卫士:360安全卫士" "360杀毒:360安全卫士" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "微信:WeChat"
+set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security"
 set registryKey="HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall" "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 set registryValue="UninstallString"
 
@@ -253,7 +255,6 @@ if "#%args%"=="#" (
 	call :getGuiHelp
 	if "#%DEFAULT_ARGS%"=="#" (set args=!returnValue!) 
 )
-
 call :getArgs %args%
 
 rem 如果是GUI界面则显示一个简易的安装界面，否则静默安装
@@ -263,9 +264,6 @@ if "#%argsGui%"=="#True" (
 	set params_msiexec=/qn /norestart
 )
 
-rem 如果系统是 Server 2008 则添加参数,以自动安装网络模块
-call :getSysVer
-if "#!sysVersion!"=="#WindowsServer2008" set "params_product=%params_product% ADDLOCAL=ALL"
 
 rem 关闭日志打印
 if "#%argsLog%"=="#True" (
@@ -280,6 +278,9 @@ if "#%argsHelp%"=="#True" (
 )
 
 echo 正在处理相关信息...
+call :getSysVer
+rem 如果系统是 Server 2008 则添加参数,以自动安装网络模块
+if "#!sysVersion!"=="#WindowsServer2008" set "params_product=%params_product% ADDLOCAL=ALL"
 
 call :getUac
 if "#%argsForce%"=="#True" set uacStatus=True
@@ -287,7 +288,6 @@ rem 进入安全模式
 if "#%argsEntrySafeMode%"=="#True" (
 	call :writeLog INFO setSafeBoot "开始配置安全模式" True True
 	if "#!uacStatus!"=="#True" (
-		call :getSysVer
 		if not !ntVerNumber! lss 61 (
 			call :setSafeBoot entry
 			if "#!returnValue!"=="#True" (
@@ -311,7 +311,6 @@ rem 退出安全模式
 if "#%argsexitSafeMode%"=="#True" (
 	call :writeLog INFO exitSafeMode "开始清除安全模式" True True
 	if "#!uacStatus!"=="#True" (
-		call :getSysVer
 		if not !ntVerNumber! lss 61 (
 			call :setSafeBoot exit
 			if "#!returnValue!"=="#True" (
@@ -339,9 +338,9 @@ if "#%argsAvUninst%"=="#True" (
 		call :writeLog INFO avUninst "开始扫描第三方安全软件..." True True
 		call :avUninst
 		if "!avUninstFlag!"=="" (
-			call :writeLog INFO avUninst "脚本已完成,未扫描到启动安全软件." True True
+			call :writeLog INFO avUninst "未扫描到其他安全软件." True True
 		) else (
-			call :writeLog INFO avUninst "脚本已完成, 请手动点击卸载程序选项进行卸载..." True True
+			call :writeLog INFO avUninst "请手动点击卸载程序选项进行卸载..." True True
 			if "#%argsGui%"=="#True" (
 				call :writeLog INFO avUninst "按任意键进行下一步操作." True True
 				pause >nul
@@ -400,7 +399,6 @@ rem 安装补丁
 if "#%argsHotfix%"=="#True" (
 	call :writeLog INFO installHotfix "开始处理补丁" True True
 	if "#!uacStatus!"=="#True" (
-		call :getSysVer
 		if not "#!ntVerNumber!"=="#61" (
 			call :writeLog WARNING installHotfix "当前系统版本无须安装补丁,只有 Windows 7 和 Windows server 2008 才需要安装补丁文件" True True
 			set exitCode=5
@@ -533,7 +531,6 @@ rem 安装Product
 if "#%argsProduct%"=="#True" (
 	call :writeLog INFO installProduct "开始处理安全产品安装" True True
 	if "#!uacStatus!"=="#True" (
-		call :getSysVer
 		if "#!sysType!"=="#Server" (
 			set version_Product=%version_Product_efsw%
 			set path_product_old_x86=%path_server_old_x86%
@@ -834,9 +831,11 @@ for %%a in (%avList%) do (
 		for %%d in (%registryKey%) do (
 			for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
 				if not "%%~g"=="" (
-					set avUninstFlag=True
-					call :writeLog INFO avUninst "启动【%%b】卸载程序: %%~g" True True
-					start /b "avUninst" "%%~g"
+					if exist "%%~g" (
+						set avUninstFlag=True
+						call :writeLog INFO avUninst "启动【%%b】卸载程序: %%~g" True True
+						start /b "avUninst" "%%~g"
+					)
 				)
 			)
 		)
@@ -984,7 +983,6 @@ echo 命令参数:%args%
 call :getUac
 echo UAC权限:!uacStatus!
 
-call :getSysVer
 echo 计算机名称:!computerName!
 echo 系统版本:!sysVersion!
 echo NT内核版本:!ntVer!
@@ -1133,7 +1131,7 @@ if /i "#%~1"=="#Product" (
 ) else (
 	set keyValue="HKEY_LOCAL_MACHINE\SOFTWARE\ESET\RemoteAdministrator\Agent\CurrentVersion\Info"
 	for /f "delims=" %%a in ('reg query HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Products 2^>nul') do (
-		for /f "delims=" %%x in ('reg query %%a /v ProductName ^| findstr /c:"ESET Management Agent" 2^>nul') do (
+		for /f "delims=" %%x in ('reg query %%a /v ProductName 2^>nul ^| findstr /c:"ESET Management Agent"') do (
 			for /f "delims={} tokens=2" %%y in ('reg query %%a /v ProductIcon 2^>nul') do (
 				set "productCode={%%y}"
 			)
