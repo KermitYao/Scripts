@@ -51,8 +51,10 @@ if "#%argsAvUninst%"=="#True" (
 		echo 未扫描到其他安全软件.
 	) else (
 		echo 请手动点击卸载程序选项进行卸载...
+		if not "%quiet%"=="True" (
 		echo 按任意键进行下一步操作.
 		pause >nul
+			)
 		)	
 )
 

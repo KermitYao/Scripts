@@ -143,7 +143,8 @@ main() {
 	then
 		printLog $LINENO INFO eppDownload "360epp 下载完成,开始安装..."
 		$instCli "${tempPath}/${eppName}"
-		instState=$(s=$(ps -ef|grep -E '360safed|eppagent'|grep -v grep);echo $s|grep 360safed|grep eppagent)
+        sleep 3
+		instState=$(s=$(ps -ef|grep -E 'eppav|360safed|eppagent'|grep -v grep);echo $s|grep -E 'eppav|360safed'|grep eppagent)
 		if test -n "${instState}"
 		then
 		    printLog $LINENO INFO eppInst "360epp 安装完成."
