@@ -1,7 +1,8 @@
 
 ::* 此脚本可以指定一个程序通过IPC$的方式在别的客户端上执行.
 ::* 2022-11-30 脚本完成
-@rem version 1.0.1
+::* 2022-12-09 1.更新 使 -c 参数可以支持一个包含地址列表的文本,即 -c 参数的值会进行判断，如果发现是文件则解析文本,如果非文件，则把值当作地址使用;2.更新 优化脚本逻辑,精简代码
+@rem version 1.2.1
 @echo off
 setlocal enabledelayedexpansion
 
@@ -41,63 +42,37 @@ if "%argsHelp%" == "True" (
 	set exitCode=0
 	goto :exitScript
 )
-if "%argsTest%" == "True" (
-	if "%argsClient% %argsUser% %argsPassword%" == "True True True" (
-		echo 开始连接主机【%argsClientValue%】...
-		call :connectIpc "%argsClientValue%" "%argsUserValue%" "%argsPasswordValue%"
-		if not "!return!"=="True" (
-			echo 主机连接失败!
-			set exitCode=3
-			goto :exitScript
-		) else (
-			echo 主机连接成功!
-			set exitCode=0
-			goto :exitScript
-		)
-	) else (
-		echo 必要参数错误或缺失.
-		set exitCode=2
-		goto :exitScript
-	)
-) else (
-	if "%argsClient% %argsUser% %argsPassword% %argsFile%" == "True True True True" (
-		echo 开始连接主机【%argsClientValue%】...
-		call :connectIpc "%argsClientValue%" "%argsUserValue%" "%argsPasswordValue%"
-		if not "!return!"=="True" (
-			echo 主机连接失败!
-			set exitCode=3
-			goto :exitScript
-		) else (
-			echo 传送相关文件【%argsFileValue%】...
-			for /f "delims=" %%a in ("%argsFileValue%") do set ipcFileName=%%~nxa
-			set ipcFilePath=\\%argsClientValue%\admin$\!ipcFileName!
-			set ipcLocalPath=%windir%\!ipcFileName!
-			call :copyFile "%argsFileValue%" "!ipcFilePath!"
-			if not "!return!"=="True" (
-				echo 传送相关文件失败!
-				set exitCode=4
-				goto :exitScript
-			)
-			echo 开始启动程序【!ipcFileName!】...
-			call :startProcess "\\%argsClientValue%" "%svrName%" "!ipcLocalPath!" "%argsArgsValue%"
-			if "!return!"=="True" (
-				echo 进程启动成功,脚本结束.
-				set exitCode=0
+
+if "%argsClient% %argsUser% %argsPassword%" == "True True True" (
+	call :isFile "%argsClientValue%"
+	if "!return!" == "True" (
+		for /f %%a in ('type "%argsClientValue%"') do (
+			echo\
+			echo 处理主机: %%~a
+			ping -n 1 %%a | findstr "TTL=" >nul
+			if !errorlevel! equ 0 (
+				call :run "%%~a"
+				set exitCode=!return!
 			) else (
-				echo 进程启动失败,脚本结束.
+				echo     测试网络连接失败!
 				set exitCode=5
 			)
 		)
 	) else (
-		echo 必要参数错误或缺失.
-		set exitCode=2
+		echo 处理主机: %argsClientValue%
+		call :run "%argsClientValue%"
+		set exitCode=!return!
 		goto :exitScript
 	)
+) else (
+	echo 必要参数错误或缺失.
+	set exitCode=2
+	goto :exitScript
 )
+
 
 rem exitCode: 正常:0,标准命令行报错:1,参数错误:2,连接IPC$出错:3,复制文件出错:4,创建服务或启动服务出错:5,未知错误:99
 :exitScript
-net use "!clientIpc!" /delete >nul 2>&1
 if "#%argsGui%"=="#True" (
 	echo 按任意键结束
 	pause >nul
@@ -107,18 +82,18 @@ if "#%argsGui%"=="#True" (
 )
 
 :getCmdHelp
-echo  Usage: %~nx0 -c 192.168.1.99 -u username -p password -f filepath
+echo  Usage: %~nx0 -c 192.168.1.99 -u username -p password -f filepath [-a args] [-t] [-g]
 echo\
 echo                      此脚本可以指定一个程序通过IPC$的方式在别的客户端上执行.
 echo\
-echo  -h            打印帮助信息
-echo  -c client     指定需要执行的客户端地址.
-echo  -u user       指定用户名,必须为管理员账户,否则将执行失败;如果是域控账号,还应该带上域名,例如: adtest\administrator
-echo  -p password   指定密码
-echo  -f filepath   指定要启动的文件路径,如果文件包含空格,应当将路径放在双引号内.
-echo  -a args       指定启动文件的参数,如果是多个需要放在双引号内
-echo  -t            只测试IPC$能否连接,不实际运行
-echo  -g            脚本完成后保留窗口
+echo  -h                    打印帮助信息
+echo  -c client ^| file      指定需要执行的客户端地址,或包含客户端地址的文本文件.
+echo  -u user               指定用户名,必须为管理员账户,否则将执行失败;如果是域控账号,还应该带上域名,例如: adtest\administrator
+echo  -p password           指定密码
+echo  -f filepath           指定要启动的文件路径,如果文件包含空格,应当将路径放在双引号内.
+echo  -a args               指定启动文件的参数,如果是多个需要放在双引号内
+echo  -t                    只测试IPC$能否连接,不实际运行
+echo  -g                    脚本完成后保留窗口
 echo.
 echo		Example: %~nx0 -c 192.168.30.125 -u administrator -p eset1234. -f D:\test.bat -a "-t -m -p"
 echo\
@@ -263,6 +238,44 @@ if exist "%~1" (
 )
 goto :eof
 
+
+:run
+
+echo     开始连接主机【%~1】...
+call :connectIpc "%~1" "%argsUserValue%" "%argsPasswordValue%"
+if not "!return!"=="True" (
+	echo     主机连接失败!
+	set exitCode=3
+	goto :exitScript
+) else (
+	echo     主机连接成功!
+	set exitCode=0
+	if not "%argsTest%" == "True" (
+		echo     传送相关文件【%argsFileValue%】...
+		for /f "delims=" %%a in ("%argsFileValue%") do set ipcFileName=%%~nxa
+		set ipcFilePath=\\%~1\admin$\!ipcFileName!
+		set ipcLocalPath=%windir%\!ipcFileName!
+		call :copyFile "%argsFileValue%" "!ipcFilePath!"
+		if not "!return!"=="True" (
+			echo     传送相关文件失败!
+			set exitCode=4
+			goto :exitScript
+		)
+		echo     开始启动程序【!ipcFileName!】...
+		call :startProcess "\\%~1" "%svrName%" "!ipcLocalPath!" "%argsArgsValue%"
+		if "!return!"=="True" (
+			echo     进程启动成功.
+			set exitCode=0
+		) else (
+			echo     进程启动失败.
+			set exitCode=5
+		)
+	)
+         net use "!clientIpc!" /delete >nul 2>&1
+)
+goto :eof
+
+
 rem 连接共享主机; 传入参数: %1 = 主机， %2 = 用户名, %3 = 密码; 例：call :connectShare "\\127.0.0.1" "kermit" "5698" ; 返回值: return=True | False
 :connectIpc
 set tmpState=False
@@ -300,7 +313,7 @@ if %errorlevel% equ 0 (
 	if !errorlevel! equ 1053 (
 		set flag_2=True
 		ping /n 3 127.0.0.1 >nul
-		sc "%~1" delete "%~2" >nul
+		::sc "%~1" delete "%~2" >nul
 		if "!flag_1!!flag_2!" == "TrueTrue" (
 			set return=True
 		)
