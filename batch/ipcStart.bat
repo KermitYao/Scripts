@@ -14,7 +14,8 @@ rem Ê¹ÓÃ·½·¨ £º SET DEFAULT=-c 192.168.30.125 -u administrator -p eset1234. -f D
 SET DEFAULT_ARGS=
 
 set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-
+::ÅÅ²éÄ£Ê½: True | Fales
+set debug=True
 rem ½âÎö²ÎÊýÁÐ±í
 set argsList=argsHelp argsClient argsClientValue argsUser argsUserValue argsPassword argsPasswordValue argsFile argsFileValue argsArgs argsArgsValue argsTest argsGui
 ::----------------------------------
@@ -80,7 +81,7 @@ if "#%argsGui%"=="#True" (
 ) else (
 	exit /b %exitCode%
 )
-
+exit 99
 :getCmdHelp
 echo  Usage: %~nx0 -c 192.168.1.99 -u username -p password -f filepath [-a args] [-t] [-g]
 echo\
@@ -281,19 +282,45 @@ rem Á¬½Ó¹²ÏíÖ÷»ú; ´«Èë²ÎÊý: %1 = Ö÷»ú£¬ %2 = ÓÃ»§Ãû, %3 = ÃÜÂë; Àý£ºcall :connec
 set tmpState=False
 set cmd_user_param=/user:"%~2"
 set clientIpc=\\%~1\ipc$
-net use "!clientIpc!" /delete >nul 2>&1
-for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "%~3" 2^>nul ^&^& echo statusTrue') do (
-	set tm=%%a
-	if "#!tm:~,10!"=="#statusTrue" (
-		set tmpState=True
+
+if "%debug%" == "True" (
+	echo debug -- Çå¿ÕÁ¬½ÓÐÅÏ¢.
+	net use "!clientIpc!" /delete
+) else (
+	net use "!clientIpc!" /delete >nul 2>&1
+)
+
+if "%debug%" == "True" (
+	echo debug -- Ö´ÐÐÔ¶³ÌÁ¬½Ó
+	for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "%~3" ^&^& echo statusTrue') do (
+		set tm=%%a
+		if "#!tm:~,10!"=="#statusTrue" (
+			set tmpState=True
+		)
+	)
+) else (
+	for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "%~3" 2^>nul ^&^& echo statusTrue') do (
+		set tm=%%a
+		if "#!tm:~,10!"=="#statusTrue" (
+			set tmpState=True
+		)
 	)
 )
+
+
 set return=!tmpState!
 goto :eof
 
 rem ¸´ÖÆÎÄ¼þµ½¿Í»§¶Ë; ´«Èë²ÎÊý: %1 = µ±Ç°ÎÄ¼þÂ·¾¶, %2 = ´«ËÍµ½¿Í»§¶ËµÄÎÄ¼þÂ·¾¶; ·µ»ØÖµ: return = True | False
 :copyFile
-copy /y "%~1" "%~2" >nul 2>&1
+
+if "%debug%" == "True" (
+	echo debug -- ¸´ÖÆÎÄ¼þµ½Ö÷»ú
+	copy /y "%~1" "%~2"
+) else (
+	copy /y "%~1" "%~2" >nul 2>&1
+)
+
 if %errorlevel% equ 0 (
 	set return=True
 ) else (
@@ -305,15 +332,33 @@ rem Æô¶¯ÎÄ¼þ; ´«Èë²ÎÊý: %1 = Ö÷»ú, %2 = ·þÎñÃû³Æ, %3 = ipc±¾µØÂ·¾¶, %4 = ³ÌÐò²ÎÊ
 :startProcess
 set flag_1=False
 set flag_2=False
-sc "%~1" query "%~2" >nul&&sc "%~1" delete "%~2" >nul
-sc "%~1" create "%~2" binPath= "%~3 %~4" >nul&&set flag_1=True
-sc "%~1" query "%~2" >nul
+
+if "%debug%" == "True" (
+	echo debug -- ²éÑ¯ºÍÉ¾³ýÖØÃû·þÎñÏî
+	sc "%~1" query "%~2" &&sc "%~1" delete "%~2"
+	echo debug -- ´´½¨ÐÂµÄÆô¶¯·þÎñ
+	echo sc "%~1" create "%~2" binPath= "%~3 %~4" &&set flag_1=True
+	sc "%~1" create "%~2" binPath= "%~3 %~4" &&set flag_1=True
+	echo debug -- ²éÑ¯·þÎñÊÇ·ñ´´½¨
+	sc "%~1" query "%~2"
+) else (
+	sc "%~1" query "%~2" >nul&&sc "%~1" delete "%~2" >nul
+	sc "%~1" create "%~2" binPath= "%~3 %~4" >nul&&set flag_1=True
+	sc "%~1" query "%~2" >nul
+)
+
 if %errorlevel% equ 0 (
-	sc "%~1" start "%~2" >nul
+	if "%debug%" == "True" (
+		echo debug -- ¿ªÊ¼Æô¶¯·þÎñ
+		sc "%~1" start "%~2"
+	) else (
+		sc "%~1" start "%~2" >nul
+	)
+
 	if !errorlevel! equ 1053 (
 		set flag_2=True
 		ping /n 3 127.0.0.1 >nul
-		::sc "%~1" delete "%~2" >nul
+		sc "%~1" delete "%~2" >nul
 		if "!flag_1!!flag_2!" == "TrueTrue" (
 			set return=True
 		)
