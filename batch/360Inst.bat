@@ -1,4 +1,10 @@
 1>1/* ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+::* 此脚本可以自动安装360epp客户端,主要用于批量安装、域控等自动安装场景
+::* 2022-10-30 脚本完成
+::* 2022-11-28 1.新增 自动弹出其他安全软件卸载程序
+::* 2022-12-25 1.修复 软件卸载功能现在可以支持msi格式的安装包了（国外软件常用）使用｛ESET Management Agent｝方式指定
+@rem version 1.1.2
 @echo off
 title 360Inst tool.
 setlocal enabledelayedexpansion
@@ -10,6 +16,12 @@ set path_Temp=%temp%\360install
 rem 用于域控推送的时候静默运行 True|False
 set quiet=False
 
+rem 脚本会搜索其他软件,并弹出卸载窗口, 通过 avList 变量指定
+set argsAvUninst=True
+
+rem 脚本会自动安装360epp客户端
+set args360Inst=True
+
 if "%~1"=="/q" set quiet=True
 for /f "delims=/ tokens=4" %%a in ("%sdUrl%") do (
 	echo %%a|findstr "^Ent_360EPP[0-9]*\[.*\]-W.exe" >nul
@@ -18,15 +30,14 @@ for /f "delims=/ tokens=4" %%a in ("%sdUrl%") do (
 if not exist %path_Temp% md %path_Temp%
 
 rem 用于启动第三方杀毒软件卸载程序,本质是搜索注册表键值,如果存在相应的键值,则启动卸载程序
-rem 以键的方式配置, "产品名称:注册表键值名称"
-set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security"
+rem 以键的方式配置, "产品名称:注册表键值名称", 如果是msi类安装程序建议使用 {程序安装代码或名称},脚本会自动搜索 wimc product 进行匹配
+set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security" "赛门铁克:{Symantec Endpoint Protection}"
 set registryKey="HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall" "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 set registryValue="UninstallString"
 
 rem 下载文件阈值,小于多少判定为下载失败,  单位kb
 set errorFileSize=4
-set argsAvUninst=True
-set args360Inst=True
+
 echo 正在处理相关信息...
 
 rem 判断epp是否安装
@@ -94,14 +105,33 @@ rem 卸载第三方杀毒软件
 :avUninst
 for %%a in (%avList%) do (
 	for /f "delims=: tokens=1*" %%b in (%%a) do (
-		for %%d in (%registryKey%) do (
-			for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
-				if not "%%~g"=="" (
-					if exist "%%~g" (
-						set avUninstFlag=True
-						echo 启动【%%b】卸载程序: %%~g
-						start /b "avUninst" "%%~g"
+		set proFlag=exe
+		echo %%~c|findstr "^{.*}$" >nul && set proType=msi
+		if not "!proType!" == "msi" (
+			for %%d in (%registryKey%) do (
+				for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
+					if not "%%~g"=="" (
+						if exist "%%~g" (
+							set avUninstFlag=True
+							echo 启动【%%b】卸载程序: %%~g
+							start /b "avUninst" "%%~g"
+						)
 					)
+				)
+			)
+		) else (
+			set isPresent=False
+			set avName=%%~c
+			set avName=!avName:{=!
+			set avName=!avName:}=!
+			for /f "delims={} tokens=2*" %%x in ('wmic product get ^| findstr /c:"!avName!"') do set avCode=%%x&set isPresent=True
+			if "!isPresent!" == "True" (
+				set avUninstFlag=True
+				echo 启动【%%b】卸载程序: msiexec /x {!avCode!}
+				if "%quiet%" == "True" (
+					start /b "avUninst" msiexec /qn /norestart /x {!avCode!}
+				) else (
+					start /b "avUninst" msiexec /qb /norestart /x {!avCode!}
 				)
 			)
 		)
@@ -113,7 +143,7 @@ rem 下载文件; 传入参数: %1 = 当前文件路径， %2 = url, %3 = 保存地址; 例：call :d
 :downFile
 set downStatus=False
 for  /f %%a in  ('cscript /nologo /e:jscript "%~f1" /downUrl:%2 /savePath:%3') do (
-	if "#%%a"=="#True" set downStatus=False
+	if "#%%a"=="#True" set downStatus=True
 )
 
 if "#!downStatus!"=="#False" (

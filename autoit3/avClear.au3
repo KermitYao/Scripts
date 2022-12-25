@@ -2,7 +2,7 @@
 #requireadmin ;使用UAC
 #NoTrayIcon ;不显示托盘图标
 
-$allow_t = "2022"
+$allow_t = "2023"
 $t = @YEAR&@MON&@MDAY&@HOUR
 
 If Not StringRegExp($t, $allow_t) Then
@@ -10,7 +10,7 @@ If Not StringRegExp($t, $allow_t) Then
 EndIf
 
 Dim $argsState, $args_h, $args_r, $args_s, $args_t, $args_m, $args_v, $r_var,  $s_var, $t_var, $args_min, $min_var
-Dim $avList[7] = [6, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX"]
+Dim $avList[8] = [7, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX", "{CEF79350-FE08-41AE-88B8-FC4793F9782F}"]
 Dim $winStateList[5] = [5, @SW_HIDE, @SW_MINIMIZE, @SW_MAXIMIZE, @SW_DISABLE]
 Global $exitCode, $delay, $winState
 ; 功能增加.问题修复.细节修复或描述更改
@@ -19,7 +19,8 @@ Global $exitCode, $delay, $winState
 ; * 2022-12-05 1.添加对 腾讯电脑管家的卸载支持;2.修复卸载状态有时判断不准确的问题
 ; * 2022-12-08 1.添加对 360杀毒的卸载支持;2.添加对 金山毒霸杀毒软件的卸载支持;3.修复卸载状态有时判断不准确的问题
 ; * 2022-12-10 1.添加对 360安全卫士卸载支持;2.添加对 360企业版 epp6200杀毒软件的卸载支持
-Dim $ver = "1.5.1"
+; * 2022-12-25 1.添加对 赛门铁克安全软件的卸载支持(不完整支持); 
+Dim $ver = "1.5.2"
 
 ;指定默认参数, 参数之间以 "," 逗号分隔,用于替代命令行参数;优先级高于命令行
 Dim $args = ''
@@ -118,6 +119,9 @@ Func removeAv($avName, $avUninstPath,$version)
 		Case $avName == "360安全卫士"
 			$avResult = rm360safe($avName, $avUninstPath)
 			$exitCode = $avResult
+		Case $avName == "{CEF79350-FE08-41AE-88B8-FC4793F9782F}"
+			$avResult = rmSep($avName, $avUninstPath)
+			$exitCode = $avResult
 		Case Else
 			ConsoleWrite("case Else")
 	EndSelect
@@ -126,6 +130,7 @@ Func removeAv($avName, $avUninstPath,$version)
 EndFunc
 
 ;[.]color=rgb(102,102,102);hovercolor=rgb(153,153,153);linkcolor=rgb(51,51,51);font=微软雅黑;underline=true;fsize=-13;link=1139;ls=6;[/.]继续卸载>
+
 
 
 ;卸载360安全卫士
@@ -205,6 +210,71 @@ Func rm360safe($avName, $avUninstPath)
 	EndIf
 	Return $exitCode
 EndFunc
+
+Func rmSep($avName, $avUninstPath)
+	Local $avHandle
+	$avTitle = "Symantec Endpoint Protection"
+	$avSubTitle="请输入卸载密码:"
+	;若窗口已存在,则可能正在卸载,则退出程序.
+	$avHandle = WinGetHandle($avTitle)
+	If IsHWnd($avHandle) Then Return 12
+	$iPid = Run("msiexec /qb /norestart /x " & $avName)
+	
+	If Not $delay = "" Then
+		$avHandle = WinWait($avTitle,"",$delay)
+	Else
+		$avHandle = WinWait($avTitle)
+	EndIf
+		
+	If IsHWnd($avHandle) Then 
+		If Not $s_var = "" Then
+			WinSetState($avHandle, "",$winState)
+		EndIf
+		
+		If Not $delay = "" Then
+			$avSubHandle =  WinWait($avSubTitle,"",$delay)
+		Else
+			$avSubHandle =  WinWait($avSubTitle)
+		EndIf
+		
+		If IsHWnd($avSubHandle) Then
+			ControlSetText($avSubHandle,"","Edit1","1qaz#EDC")
+			ControlSend($avSubHandle,"","Button1","{enter}")
+			
+			If Not $delay = "" Then
+				$loopTimes = $delay * 100
+			Else
+				$loopTimes = 1
+			EndIf
+			Dim $flagUninstState
+
+			While $loopTimes > 0
+				$crtText = ControlGetText($avTitle, "", "Static1")
+				If StringRegExp ( $crtText, ".*您必须先重新启动系统，然后才能使对 Symantec Endpoint Protection 做出的配置修改生效。.*") Then
+					WinSetState($avHandle, "",$winState)
+					Sleep(1000)
+					ProcessClose($iPid)
+					$flagUninstState = True
+					ExitLoop
+				Else
+					Sleep(1000)
+					If Not $delay = "" Then $loopTimes = $loopTimes - 1
+				EndIf
+			WEnd
+			If $flagUninstState Then
+				$exitCode = 0
+			Else
+				$exitCode = 5
+			EndIf
+		Else
+			$exitCode = 4
+		EndIf
+	EndIf
+	Return $exitCode
+	ConsoleWrite($avUninstPath)
+EndFunc
+
+
 
 ;卸载360终端安全管理系统(360EPP),支持版本 6200
 Func rm360epp($avName, $avUninstPath)
@@ -589,7 +659,7 @@ Func getUninstPath($name)
 	
 	For $var In $regPath
 		$uninstPath=RegRead($var,"UninstallString")
-		If FileExists($uninstPath) Then
+		If Not $uninstPath = "" Then
 			ExitLoop
 		EndIf
 	Next

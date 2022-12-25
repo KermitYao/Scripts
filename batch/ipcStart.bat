@@ -2,7 +2,8 @@
 ::* ´Ë½Å±¾¿ÉÒÔÖ¸¶¨Ò»¸ö³ÌÐòÍ¨¹ýIPC$µÄ·½Ê½ÔÚ±ðµÄ¿Í»§¶ËÉÏÖ´ÐÐ.
 ::* 2022-11-30 ½Å±¾Íê³É
 ::* 2022-12-09 1.¸üÐÂ Ê¹ -c ²ÎÊý¿ÉÒÔÖ§³ÖÒ»¸ö°üº¬µØÖ·ÁÐ±íµÄÎÄ±¾,¼´ -c ²ÎÊýµÄÖµ»á½øÐÐÅÐ¶Ï£¬Èç¹û·¢ÏÖÊÇÎÄ¼þÔò½âÎöÎÄ±¾,Èç¹û·ÇÎÄ¼þ£¬Ôò°ÑÖµµ±×÷µØÖ·Ê¹ÓÃ;2.¸üÐÂ ÓÅ»¯½Å±¾Âß¼­,¾«¼ò´úÂë
-@rem version 1.2.1
+::* 2022-12-24 1.ÐÂÔö ÐÂÔö -m²ÎÊý, ´Ë²ÎÊý¿ÉÒÔÖ¸¶¨Ò»¸öÎÄ¼þÆô¶¯·½Ê½£¬Ä¬ÈÏÊ¹ÓÃ sc Í¨¹ý·þÎñÆ÷Æô¶¯ÒÑ¾­´«ËÍµÄÎÄ¼þ, Í¨¹ý -m schtasks  ¿ÉÒÔÖ¸¶¨Í¨¹ý¼Æ»®ÈÎÎñµÄ·½Ê½Æô¶¯,¶Ô½Å±¾ÀàÎÄ¼þ¸üÓÑºÃ
+@rem version 1.3.0
 @echo off
 setlocal enabledelayedexpansion
 
@@ -14,10 +15,10 @@ rem Ê¹ÓÃ·½·¨ £º SET DEFAULT=-c 192.168.30.125 -u administrator -p eset1234. -f D
 SET DEFAULT_ARGS=
 
 set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-::ÅÅ²éÄ£Ê½: True | Fales
-set debug=True
+::ÅÅ²éÄ£Ê½: True | False
+set debug=False
 rem ½âÎö²ÎÊýÁÐ±í
-set argsList=argsHelp argsClient argsClientValue argsUser argsUserValue argsPassword argsPasswordValue argsFile argsFileValue argsArgs argsArgsValue argsTest argsGui
+set argsList=argsHelp argsClient argsClientValue argsUser argsUserValue argsPassword argsPasswordValue argsFile argsFileValue argsArgs argsArgsValue argsTest argsGui argsMethod argsMethodValue
 ::----------------------------------
 
 rem ----------- init -----------
@@ -83,7 +84,7 @@ if "#%argsGui%"=="#True" (
 )
 exit 99
 :getCmdHelp
-echo  Usage: %~nx0 -c 192.168.1.99 -u username -p password -f filepath [-a args] [-t] [-g]
+echo  Usage: %~nx0 -c 192.168.1.99 -u username -p password -f filepath [-a args] [-t] [-g] [-k schtasks]
 echo\
 echo                      ´Ë½Å±¾¿ÉÒÔÖ¸¶¨Ò»¸ö³ÌÐòÍ¨¹ýIPC$µÄ·½Ê½ÔÚ±ðµÄ¿Í»§¶ËÉÏÖ´ÐÐ.
 echo\
@@ -93,6 +94,7 @@ echo  -u user               Ö¸¶¨ÓÃ»§Ãû,±ØÐëÎª¹ÜÀíÔ±ÕË»§,·ñÔò½«Ö´ÐÐÊ§°Ü;Èç¹ûÊÇÓò¿
 echo  -p password           Ö¸¶¨ÃÜÂë
 echo  -f filepath           Ö¸¶¨ÒªÆô¶¯µÄÎÄ¼þÂ·¾¶,Èç¹ûÎÄ¼þ°üº¬¿Õ¸ñ,Ó¦µ±½«Â·¾¶·ÅÔÚË«ÒýºÅÄÚ.
 echo  -a args               Ö¸¶¨Æô¶¯ÎÄ¼þµÄ²ÎÊý,Èç¹ûÊÇ¶à¸öÐèÒª·ÅÔÚË«ÒýºÅÄÚ
+echo  -m sc^|schtasks        Ö¸¶¨Í¨¹ýºÎÖÖ·½Ê½Æô¶¯ÎÄ¼þ,Ä¬ÈÏÊ¹ÓÃsc´´½¨·þÎñµÄ·½Ê½Æô¶¯,schtasksÊ¹ÓÃÈÎÎñ¼Æ»®.
 echo  -t                    Ö»²âÊÔIPC$ÄÜ·ñÁ¬½Ó,²»Êµ¼ÊÔËÐÐ
 echo  -g                    ½Å±¾Íê³Éºó±£Áô´°¿Ú
 echo.
@@ -213,6 +215,12 @@ if /i "#%~1"=="#-a" (
 	)
 )
 
+if /i "#%~1"=="#-m" (
+	if not "#$~2"=="#" (
+    	echo %~2|findstr "^/ ^-" >nul||(set argsMethod=True&set argsMethodValue=%~2)
+	)
+)
+
 if /i "#%~1"=="#-t" (	
     set argsTest=True
 )
@@ -263,7 +271,11 @@ if not "!return!"=="True" (
 			goto :exitScript
 		)
 		echo     ¿ªÊ¼Æô¶¯³ÌÐò¡¾!ipcFileName!¡¿...
-		call :startProcess "\\%~1" "%svrName%" "!ipcLocalPath!" "%argsArgsValue%"
+		if "%argsMethodValue%" == "schtasks" (
+			call :startProcessSchtasks "\\%~1" "%svrName%" "!ipcLocalPath!" "%argsArgsValue%" "%argsUserValue%" "%argsPasswordValue%"
+		) else (
+			call :startProcessSC "\\%~1" "%svrName%" "!ipcLocalPath!" "%argsArgsValue%"
+		)
 		if "!return!"=="True" (
 			echo     ½ø³ÌÆô¶¯³É¹¦.
 			set exitCode=0
@@ -329,7 +341,7 @@ if %errorlevel% equ 0 (
 goto :eof
 
 rem Æô¶¯ÎÄ¼þ; ´«Èë²ÎÊý: %1 = Ö÷»ú, %2 = ·þÎñÃû³Æ, %3 = ipc±¾µØÂ·¾¶, %4 = ³ÌÐò²ÎÊý
-:startProcess
+:startProcessSC
 set flag_1=False
 set flag_2=False
 
@@ -365,5 +377,34 @@ if %errorlevel% equ 0 (
 	)
 ) else (
 	set return=False
+)
+goto :eof
+
+
+rem Æô¶¯ÎÄ¼þ; ´«Èë²ÎÊý: %1 = Ö÷»ú, %2 = ÈÎÎñÃû³Æ, %3 = ipc±¾µØÂ·¾¶, %4 = ³ÌÐò²ÎÊý, %5 = ÕËºÅ, %6 = ÃÜÂë
+:startProcessSchtasks
+set return=False
+
+if "%debug%" == "True" (
+	echo debug -- ÕËºÅ£º[%~5], ÃÜÂë£º[%~6],¿ªÊ¼´´½¨¼Æ»®ÈÎÎñ...
+	schtasks /CREATE /S "%~1" /U "%~5" /P "%~6" /RU "system" /TN "%~2" /TR "cmd.exe /c %~3 %~4" /ST 00:00 /SC ONCE /F
+	if !errorlevel! equ 0 (
+		echo debug -- ¿ªÊ¼Æô¶¯¼Æ»®ÈÎÎñ...
+		schtasks /run /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /i
+		if !errorlevel! equ 0 (
+			set return=True
+			echo debug -- ¿ªÊ¼É¾³ý¼Æ»®ÈÎÎñ...
+			schtasks /delete /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /F
+		)
+	)
+) else (
+	schtasks /CREATE /S "%~1" /U "%~5" /P "%~6" /RU "system" /TN "%~2" /TR "cmd.exe /c %~3 %~4" /ST 00:00 /SC ONCE /F >nul 2>&1
+	if !errorlevel! equ 0 (
+		schtasks /run /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /i  >nul 2>&1
+		if !errorlevel! equ 0 (
+			set return=True
+			schtasks /delete /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /F >nul 2>&1
+		)
+	)
 )
 goto :eof
