@@ -10,7 +10,7 @@ If Not StringRegExp($t, $allow_t) Then
 EndIf
 
 Dim $argsState, $args_h, $args_r, $args_s, $args_t, $args_m, $args_v, $r_var,  $s_var, $t_var, $args_min, $min_var
-Dim $avList[8] = [7, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX", "{CEF79350-FE08-41AE-88B8-FC4793F9782F}"]
+Dim $avList[8] = [7, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX", "{Symantec Endpoint Protection}"]
 Dim $winStateList[5] = [5, @SW_HIDE, @SW_MINIMIZE, @SW_MAXIMIZE, @SW_DISABLE]
 Global $exitCode, $delay, $winState
 ; 功能增加.问题修复.细节修复或描述更改
@@ -20,7 +20,8 @@ Global $exitCode, $delay, $winState
 ; * 2022-12-08 1.添加对 360杀毒的卸载支持;2.添加对 金山毒霸杀毒软件的卸载支持;3.修复卸载状态有时判断不准确的问题
 ; * 2022-12-10 1.添加对 360安全卫士卸载支持;2.添加对 360企业版 epp6200杀毒软件的卸载支持
 ; * 2022-12-25 1.添加对 赛门铁克安全软件的卸载支持(不完整支持); 
-Dim $ver = "1.5.2"
+; * 2023-1-5 1.添加对 msi格式的卸载支持, 通过{name}形式指定; 
+Dim $ver = "1.6.1"
 
 ;指定默认参数, 参数之间以 "," 逗号分隔,用于替代命令行参数;优先级高于命令行
 Dim $args = ''
@@ -119,7 +120,7 @@ Func removeAv($avName, $avUninstPath,$version)
 		Case $avName == "360安全卫士"
 			$avResult = rm360safe($avName, $avUninstPath)
 			$exitCode = $avResult
-		Case $avName == "{CEF79350-FE08-41AE-88B8-FC4793F9782F}"
+		Case $avName == "{Symantec Endpoint Protection}"
 			$avResult = rmSep($avName, $avUninstPath)
 			$exitCode = $avResult
 		Case Else
@@ -214,11 +215,12 @@ EndFunc
 Func rmSep($avName, $avUninstPath)
 	Local $avHandle
 	$avTitle = "Symantec Endpoint Protection"
-	$avSubTitle="请输入卸载密码:"
+	;Please enter the uninstall password:
+	$avSubTitle="[REGEXPTITLE:(请输入卸载密码:|Please enter the uninstall password:)]"
 	;若窗口已存在,则可能正在卸载,则退出程序.
 	$avHandle = WinGetHandle($avTitle)
-	If IsHWnd($avHandle) Then Return 12
-	$iPid = Run("msiexec /qb /norestart /x " & $avName)
+	;If IsHWnd($avHandle) Then Return 12
+	$iPid = Run("msiexec /qb /norestart /x " & $avUninstPath)
 	
 	If Not $delay = "" Then
 		$avHandle = WinWait($avTitle,"",$delay)
@@ -247,10 +249,9 @@ Func rmSep($avName, $avUninstPath)
 				$loopTimes = 1
 			EndIf
 			Dim $flagUninstState
-
 			While $loopTimes > 0
 				$crtText = ControlGetText($avTitle, "", "Static1")
-				If StringRegExp ( $crtText, ".*您必须先重新启动系统，然后才能使对 Symantec Endpoint Protection 做出的配置修改生效。.*") Then
+				If StringRegExp ( $crtText, ".*(您必须先重新启动系统，然后才能使对 Symantec Endpoint Protection 做出的配置修改生效。|you must restart the computer. Other users are currently logged on to this computer, and restarting may cause them to lose their work).*") Then
 					WinSetState($avHandle, "",$winState)
 					Sleep(1000)
 					ProcessClose($iPid)
@@ -651,18 +652,32 @@ EndFunc
 
 ;获取卸载文件路径
 Func getUninstPath($name)
-	If @OSArch == "X86" Then
-		Local $regPath[2] = ["HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"&$name]
-	Else
-		Local $regPath[2] = ["HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"&$name, "HKLM64\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"&$name]
-	EndIf
+		Local $regPath[3] = ["HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\", "HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\", "HKLM64\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"]
+	$result = StringRegExp($name, "^\{.*\}$")
 	
-	For $var In $regPath
-		$uninstPath=RegRead($var,"UninstallString")
-		If Not $uninstPath = "" Then
-			ExitLoop
-		EndIf
-	Next
+	If Not $result Then
+		For $var In $regPath
+			$uninstPath=RegRead($var&$name,"UninstallString")
+			If Not $uninstPath = "" Then
+				ExitLoop
+			EndIf
+		Next
+	Else
+		For $var In $regPath
+			For $i = 1 To 300
+				Local $keyVar = RegEnumKey($var, $i)
+				If @error <> 0 Then ExitLoop
+				Local $tmpVar = RegRead($var&$keyVar,"DisplayName")
+				If Not @error <> 0 Then
+					Local $tmpAvName = "{"&$tmpVar&"}"
+					If $tmpAvName = $name Then
+						$uninstPath = $keyVar
+						ExitLoop
+					EndIf
+				EndIf
+			Next
+		Next
+	EndIf
 	Return $uninstPath
 EndFunc
 

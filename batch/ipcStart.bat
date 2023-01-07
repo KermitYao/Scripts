@@ -3,7 +3,8 @@
 ::* 2022-11-30 脚本完成
 ::* 2022-12-09 1.更新 使 -c 参数可以支持一个包含地址列表的文本,即 -c 参数的值会进行判断，如果发现是文件则解析文本,如果非文件，则把值当作地址使用;2.更新 优化脚本逻辑,精简代码
 ::* 2022-12-24 1.新增 新增 -m参数, 此参数可以指定一个文件启动方式，默认使用 sc 通过服务器启动已经传送的文件, 通过 -m schtasks  可以指定通过计划任务的方式启动,对脚本类文件更友好
-@rem version 1.3.0
+::* 2023-01-06 1.新增 -e 参数,此参数可以指定一个文件来输出每个主机的执行结果，通过 -e filename 来指定输出的文件.; 2.新增 若有特殊字符密码时,可以通过指定: passWord 变量的方式进行设定.
+@rem version 1.4.0
 @echo off
 setlocal enabledelayedexpansion
 
@@ -18,7 +19,7 @@ set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 ::排查模式: True | False
 set debug=False
 rem 解析参数列表
-set argsList=argsHelp argsClient argsClientValue argsUser argsUserValue argsPassword argsPasswordValue argsFile argsFileValue argsArgs argsArgsValue argsTest argsGui argsMethod argsMethodValue
+set argsList=argsHelp argsClient argsClientValue argsUser argsUserValue argsPassword argsPasswordValue argsFile argsFileValue argsArgs argsArgsValue argsTest argsGui argsMethod argsMethodValue argsExport argsExportValue
 ::----------------------------------
 
 rem ----------- init -----------
@@ -26,6 +27,10 @@ rem 设置初始变量
 rem 记录初始命令行参数
 set svrName=ipcStart_TeMp
 set srcArgs=%*
+
+rem 如果密码有特殊字符,可以在此处强制指定,主要是: [!] 和 [^] 这两个字符, 如果包含这两个字符则在字符前加 [^] 符号进行转义,如果不需要保持为空或者注释掉即可
+::set "passWord=abcd1234^!@#$%^^&*()_+-="
+set "passWord="
 
 if not defined DEFAULT_ARGS (
 	set args=%srcArgs%
@@ -38,6 +43,11 @@ if not defined args (
 )
 
 call :getArgs %args%
+
+rem 如果密码有特殊字符,可以在此处强制指定
+if not "!passWord!" == "" (
+	set "argsPasswordValue=!passWord!"
+)
 
 if "%argsHelp%" == "True" (
 	call :getCmdHelp
@@ -57,6 +67,7 @@ if "%argsClient% %argsUser% %argsPassword%" == "True True True" (
 				set exitCode=!return!
 			) else (
 				echo     测试网络连接失败!
+				call :exportHost "%%~a" 1 "!argsExportValue!"
 				set exitCode=5
 			)
 		)
@@ -84,7 +95,7 @@ if "#%argsGui%"=="#True" (
 )
 exit 99
 :getCmdHelp
-echo  Usage: %~nx0 -c 192.168.1.99 -u username -p password -f filepath [-a args] [-t] [-g] [-k schtasks]
+echo  Usage: %~nx0 -c host -u username -p password -f filepath [-a args] [-t] [-g] [-m schtasks]
 echo\
 echo                      此脚本可以指定一个程序通过IPC$的方式在别的客户端上执行.
 echo\
@@ -96,9 +107,10 @@ echo  -f filepath           指定要启动的文件路径,如果文件包含空格,应当将路径放在
 echo  -a args               指定启动文件的参数,如果是多个需要放在双引号内
 echo  -m sc^|schtasks        指定通过何种方式启动文件,默认使用sc创建服务的方式启动,schtasks使用任务计划.
 echo  -t                    只测试IPC$能否连接,不实际运行
+echo  -e exportFile         导出处理的主机列表
 echo  -g                    脚本完成后保留窗口
 echo.
-echo		Example: %~nx0 -c 192.168.30.125 -u administrator -p eset1234. -f D:\test.bat -a "-t -m -p"
+echo		Example: %~nx0 -c 192.168.30.125 -u administrator -p eset1234. -f D:\test.bat -a "-t -m sc -p" -m schtasks -g exportHost.log
 echo\
 echo              Code by Kermit Yao @ Windows 11, 2022-11-30 ,kermit.yao@qq.com
 goto :eof
@@ -225,6 +237,12 @@ if /i "#%~1"=="#-t" (
     set argsTest=True
 )
 
+if /i "#%~1"=="#-e" (
+	if not "#$~2"=="#" (
+    	echo %~2|findstr "^/ ^-" >nul||(set argsExport=True&set argsExportValue=%~2)
+	)
+)
+
 if /i "#%~1"=="#-g" (	
     set argsGui=True
 )
@@ -254,6 +272,7 @@ echo     开始连接主机【%~1】...
 call :connectIpc "%~1" "%argsUserValue%" "%argsPasswordValue%"
 if not "!return!"=="True" (
 	echo     主机连接失败!
+	call :exportHost "%~1" 2 "!argsExportValue!"
 	set exitCode=3
 	goto :exitScript
 ) else (
@@ -264,9 +283,10 @@ if not "!return!"=="True" (
 		for /f "delims=" %%a in ("%argsFileValue%") do set ipcFileName=%%~nxa
 		set ipcFilePath=\\%~1\admin$\!ipcFileName!
 		set ipcLocalPath=%windir%\!ipcFileName!
-		call :copyFile "%argsFileValue%" "!ipcFilePath!"
+		call :copyFile "%argsFileValue%" "!ipcFilePath!" "%~1"
 		if not "!return!"=="True" (
 			echo     传送相关文件失败!
+			call :exportHost "%~1" 3 "!argsExportValue!"
 			set exitCode=4
 			goto :exitScript
 		)
@@ -283,8 +303,26 @@ if not "!return!"=="True" (
 			echo     进程启动失败.
 			set exitCode=5
 		)
+	) else (
+		call :exportHost "%~1" 10 "!argsExportValue!"
 	)
          net use "!clientIpc!" /delete >nul 2>&1
+)
+goto :eof
+
+
+rem 导出主机到文件；传入参数: %1 = 主机, %2 = 类型 (0=成功, 1=网络测试未通过, 2=连接ipc失败, 3=复制文件失败, 4=创建服务失败, 5=启动服务失败, 6=创建任务计划失败, 7=启动任务计划失败)， %3 = 导出文件路径
+rem call :exportHost host 0 !argsExportValue!
+:exportHost
+
+if not "!argsExport!" == "" (
+	if not exist "%~3" (
+		echo           IP         STATE{0=成功, 1=网络测试未通过, 2=连接ipc失败, 3=复制文件失败, 4=创建服务失败, 5=启动服务失败, 6=创建任务计划失败, 7=启动任务计划失败}>>"%~3"
+	)
+	set tmpHost=%~1
+	set tmpHost=!tmpHost:\=!
+	::echo host: !tmpHost! -- type: %2 -- exportFile: %~3
+	echo !tmpHost!  %2 >>"%~3"
 )
 goto :eof
 
@@ -294,7 +332,6 @@ rem 连接共享主机; 传入参数: %1 = 主机， %2 = 用户名, %3 = 密码; 例：call :connec
 set tmpState=False
 set cmd_user_param=/user:"%~2"
 set clientIpc=\\%~1\ipc$
-
 if "%debug%" == "True" (
 	echo debug -- 清空连接信息.
 	net use "!clientIpc!" /delete
@@ -304,21 +341,20 @@ if "%debug%" == "True" (
 
 if "%debug%" == "True" (
 	echo debug -- 执行远程连接
-	for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "%~3" ^&^& echo statusTrue') do (
+	for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "!argsPasswordValue!" ^&^& echo statusTrue') do (
 		set tm=%%a
 		if "#!tm:~,10!"=="#statusTrue" (
 			set tmpState=True
 		)
 	)
 ) else (
-	for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "%~3" 2^>nul ^&^& echo statusTrue') do (
+	for /f "delims=" %%a in ('net use "!clientIpc!" !cmd_user_param! "!argsPasswordValue!" 2^>nul ^&^& echo statusTrue') do (
 		set tm=%%a
 		if "#!tm:~,10!"=="#statusTrue" (
 			set tmpState=True
 		)
 	)
 )
-
 
 set return=!tmpState!
 goto :eof
@@ -336,7 +372,7 @@ if "%debug%" == "True" (
 if %errorlevel% equ 0 (
 	set return=True
 ) else (
-	set return=False
+	set return=Fals
 )
 goto :eof
 
@@ -373,10 +409,14 @@ if %errorlevel% equ 0 (
 		sc "%~1" delete "%~2" >nul
 		if "!flag_1!!flag_2!" == "TrueTrue" (
 			set return=True
+			call :exportHost %~1 0 "!argsExportValue!"
 		)
+	) else (
+		call :exportHost "%~1" 5 "!argsExportValue!"
 	)
 ) else (
 	set return=False
+	call :exportHost "%~1" 4 "!argsExportValue!"
 )
 goto :eof
 
@@ -384,27 +424,36 @@ goto :eof
 rem 启动文件; 传入参数: %1 = 主机, %2 = 任务名称, %3 = ipc本地路径, %4 = 程序参数, %5 = 账号, %6 = 密码
 :startProcessSchtasks
 set return=False
-
 if "%debug%" == "True" (
-	echo debug -- 账号：[%~5], 密码：[%~6],开始创建计划任务...
-	schtasks /CREATE /S "%~1" /U "%~5" /P "%~6" /RU "system" /TN "%~2" /TR "cmd.exe /c %~3 %~4" /ST 00:00 /SC ONCE /F
+	echo debug -- 账号：[%~5], 密码：[!argsPasswordValue!],开始创建计划任务...
+	schtasks /CREATE /S "%~1" /U "%~5" /P "!argsPasswordValue!" /RU "system" /TN "%~2" /TR "cmd.exe /c %~3 %~4" /ST 00:00 /SC ONCE /F
 	if !errorlevel! equ 0 (
 		echo debug -- 开始启动计划任务...
-		schtasks /run /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /i
+		schtasks /run /S "%~1" /U "%~5" /P "!argsPasswordValue!" /TN "%~2" /i
 		if !errorlevel! equ 0 (
 			set return=True
+			call :exportHost "%~1" 0 "!argsExportValue!"
 			echo debug -- 开始删除计划任务...
-			schtasks /delete /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /F
+			schtasks /delete /S "%~1" /U "%~5" /P "!argsPasswordValue!" /TN "%~2" /F
+		) else (
+			call :exportHost "%~1" 7 "!argsExportValue!"
 		)
+	) else (
+		call :exportHost "%~1" 6 "!argsExportValue!"
 	)
 ) else (
-	schtasks /CREATE /S "%~1" /U "%~5" /P "%~6" /RU "system" /TN "%~2" /TR "cmd.exe /c %~3 %~4" /ST 00:00 /SC ONCE /F >nul 2>&1
+	schtasks /CREATE /S "%~1" /U "%~5" /P "!argsPasswordValue!" /RU "system" /TN "%~2" /TR "cmd.exe /c %~3 %~4" /ST 00:00 /SC ONCE /F >nul 2>&1
 	if !errorlevel! equ 0 (
-		schtasks /run /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /i  >nul 2>&1
+		schtasks /run /S "%~1" /U "%~5" /P "!argsPasswordValue!" /TN "%~2" /i  >nul 2>&1
 		if !errorlevel! equ 0 (
 			set return=True
-			schtasks /delete /S "%~1" /U "%~5" /P "%~6" /TN "%~2" /F >nul 2>&1
+			call :exportHost "%~1" 0 "!argsExportValue!"
+			schtasks /delete /S "%~1" /U "%~5" /P "!argsPasswordValue!" /TN "%~2" /F >nul 2>&1
+		) else (
+			call :exportHost "%~1" 7 "!argsExportValue!"
 		)
+	) else (
+		call :exportHost "%~1" 6 "!argsExportValue!"
 	)
 )
 goto :eof
