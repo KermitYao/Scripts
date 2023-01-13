@@ -1,5 +1,7 @@
 1>1/* ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+goto :begin
+
 ::* 系统支持 win XP| win7 | win8| win10 | win server 2003 | win server 2008 | win server 2012 | win server|2016 |win server 2019
 ::* 前置第三方组件 findstr | wmic | msiexec | dism | reg | powershell (非必须) 
 ::* 2021-05-25 脚本完成
@@ -17,9 +19,24 @@
 ::* 2022-05-26 1.修复 -- 获取 AGENT 信息时,报告无法找到注册表的问题
 ::* 2022-10-21 1.新增 -- 现在可以通过指定参数来自动搜索第三方软件的卸载程序，进行卸载了(--avUninst).
 ::* 2022-10-28 1.修复 -- 增加对金山毒霸的卸载; 2.优化脚本的启动速度
+::* v2.0.0_20230111_alpha
+	1.新增 win7单独安装9.x版本
+	2.新增 现在可以使用 -v 来显示当前的版本了; 
+	3.更新 重构部分代码,封装成函数,实现不同系统版本对应不同的下载链接,提高效率;
+	4.更新 重构版本判断罗辑,现在将更加精准
+	5.更新 现在只有检测到确实需要获取系统信息时才会调用相关功能，提高脚本运行效率; 
+	6.更新 卸载第三方模块现在可以添加msiexec方式安装的软件了，通过 在名称左右添加大括号实现: {}
+	7.修复 修复了几个没什么影响的bug
+
+::* v2.0.0_20230113_beta
+	1.修复 处理之前遗留问题,完善版本判断罗辑；功能性测试.
 
 
-goto :begin
+:: -------------待优化----------
+	1.xp在调用 getVersion agent 时报错
+	在此行代码中:for /f "delims=" %%x in ('reg query %%a /v ProductName 2^>nul ^| findstr /c:"ESET Management Agent"') do (
+		xp系统获取的内容第一行会增加 "! reg 3.0" 导致错误,但无法通过标准错误屏蔽,暂未找到解决方案.
+
 ::-----readme-----
 
 快速使用:
@@ -45,8 +62,8 @@ goto :begin
 	2.可以使用参数 -h | -help 来查看支持的参数
 	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
 	4.
-		set version_Agent=9.1
-		set version_Product_eea=9.1
+		set version_Agent=10
+		set version_Product_eea=10
 		set version_Product_efsw=9.0
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
@@ -61,7 +78,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@rem version 1.1.9
+@set version=v2.0.0_20230111_bate
 @echo off
 setlocal enabledelayedexpansion
 
@@ -79,7 +96,7 @@ set DEBUG=False
 set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 rem 解析参数列表
-set argsList=argsHelp argsAll argsEarly argsHotfix argsProduct argsAgent argsUndoAgent argsUndoProduct argsEntrySafeMode argsExitSafeMode argsSysStatus argsEsetLog argsForce argsLog argsRemove argsGui argsAvUninst
+set argsList=argsHelp argsAll argsEarly argsHotfix argsProduct argsAgent argsUndoAgent argsUndoProduct argsEntrySafeMode argsExitSafeMode argsSysStatus argsEsetLog argsForce argsLog argsRemove argsGui argsAvUninst argsVersion
 ::----------------------------------
 
 rem ----------- init -----------
@@ -88,8 +105,8 @@ rem 设置初始变量
 
 rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
-set version_Agent=9.1
-set version_Product_eea=9.1
+set version_Agent=10.0
+set version_Product_eea=10.0
 set version_Product_efsw=9.0
 rem -------------------
 
@@ -104,7 +121,7 @@ set sharePwd=
 
 rem 用于启动第三方杀毒软件卸载程序,本质是搜索注册表键值,如果存在相应的键值,则启动卸载程序
 rem 以键的方式配置, "产品名称:注册表键值名称"
-set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security"
+set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security" "赛门铁克:{Symantec Endpoint Protection}"
 set registryKey="HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall" "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 set registryValue="UninstallString"
 
@@ -132,9 +149,14 @@ if %absStatus%==False (
 
 	rem --------PC product--------
 	rem PC Product 下载地址
+
 	rem 老系统专用杀毒软件,建议使用 v6.5
 	set path_pc_old_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_chs_v6.5.msi
 	set path_pc_old_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_chs_v6.5.msi
+
+	rem Win7系统专用杀毒软件,需低于v10建议使用 v9.1
+	set path_pc_nt61_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_v9.1.msi
+	set path_pc_nt61_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt64_v9.1.msi
 
 	rem 建议使用最新版本
 	set path_pc_late_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/PC/eea_nt32_later.msi
@@ -192,6 +214,10 @@ if %absStatus%==False (
 	rem 建议使用 v6.5
 	set path_pc_old_x86=PC\eea_nt32_chs_v6.5.msi
 	set path_pc_old_x64=PC\eea_nt64_chs_v6.5.msi
+
+	rem Win7系统专用杀毒软件,需低于v10建议使用 v9.1
+	set path_pc_nt61_x86=PC\eea_nt32_v9.1.msi
+	set path_pc_nt61_x64=PC\eea_nt64_v9.1.msi
 
 	rem 建议使用最新版本
 	set path_pc_late_x86=PC\eea_nt32_v8.1.msi
@@ -278,7 +304,7 @@ if "#%argsHelp%"=="#True" (
 )
 
 echo 正在处理相关信息...
-call :getSysVer
+call :getSysInfo
 rem 如果系统是 Server 2008 则添加参数,以自动安装网络模块
 if "#!sysVersion!"=="#WindowsServer2008" set "params_product=%params_product% ADDLOCAL=ALL"
 
@@ -340,7 +366,7 @@ if "#%argsAvUninst%"=="#True" (
 		if "!avUninstFlag!"=="" (
 			call :writeLog INFO avUninst "未扫描到其他安全软件." True True
 		) else (
-			call :writeLog INFO avUninst "请手动点击卸载程序选项进行卸载..." True True
+			call :writeLog INFO avUninst "如果有弹出卸载窗口,请请手动点击卸载程序选项进行卸载..." True True
 			if "#%argsGui%"=="#True" (
 				call :writeLog INFO avUninst "按任意键进行下一步操作." True True
 				pause >nul
@@ -404,19 +430,10 @@ if "#%argsHotfix%"=="#True" (
 			set exitCode=5
 		) else (
 			if "#!ntVer!"=="#6.1.7600" (
-				call :writeLog WARNING installHotfix "当前系统版本不支持此安装补丁,您需要将系统先安装 Service Pack 1 才能继续安装此补丁" True True
+				call :writeLog WARNING installHotfix "当前系统版本不支持此安装补丁,您需要将系统先安装 Service Pack 1 [KB976932] 才能继续安装此补丁" True True
 				set exitCode=5
 				goto :esetSkip
 			) else (
-				call :getSysArch
-				if "#!sysArch%!"=="#x64" (
-						set hotfix_kb4490628=%path_hotfix_kb4490628_x64%
-						set hotfix_kb4474419=%path_hotfix_kb4474419_x64%
-				) else (
-						set hotfix_kb4490628=%path_hotfix_kb4490628_x86%
-						set hotfix_kb4474419=%path_hotfix_kb4474419_x86%
-				)
-
 				call :getHotfixStatus kb4490628 kb4474419
 				for %%a in (kb4490628 kb4474419) do (
 					if "#!%%a!"=="#True" (
@@ -459,29 +476,19 @@ rem 安装Agent
 if "#%argsAgent%"=="#True" (
 	call :writeLog INFO installAgent "开始处理Agent安装" True True
 	if "#!uacStatus!"=="#True" (
-		call :getVersion Agent
-		set returnValue=!returnValue:.=!
-		set agentCurrentVersion=!returnValue:~,2!
-		set agentInstallVersion=%version_Agent:.=%
-		set agentInstallVersion=!agentInstallVersion:~,2!
-		if "#%argsForce%"=="#True" set agentCurrentVersion=0
-		if !agentCurrentVersion! lss !agentInstallVersion! (
-			call :getSysArch
-			if "#!sysArch%!"=="#x64" (
-				set path_agent_old=%path_agent_old_x64%
-				set path_agent_late=%path_agent_late_x64%
-			) else (
-				set path_agent_old=%path_agent_old_x86%
-				set path_agent_late=%path_agent_late_x86%
-			)
-			if "#%argsEarly%"=="#True" set ntVerNumber=51
-			if !ntVerNumber! lss 61 (
-				set path_agent=!path_agent_old!
-			) else (
-				set path_agent=!path_agent_late!
-			)
-			set path_agent_config=%path_agent_config%
 
+		call :getVersion Agent
+		call :formatVersion !returnValue!
+		set agentCurrentVersionNoDot=!versionNoDot!
+		set agentCurrentVersionDot=!versionDot!
+
+		call :formatVersion !version_Agent!
+		set agentInstallVersionNoDot=!versionNoDot!
+		set agentInstallVersionDot=!versionDot!
+
+		rem 当前版本小于已安装版本,则开始安装
+		if "#%argsForce%"=="#True" set agentInstallVersionNoDot=0
+		if !agentCurrentVersionNoDot! lss !agentInstallVersionNoDot! (
 			if "#%absStatus%"=="#True" (
 				call :connectShare "!path_agent!" %shareUser% %sharePwd%
 				call :writeLog DEBUG connectShare "Agent 共享连接状态是: [!returnValue!]" False True 
@@ -518,7 +525,7 @@ if "#%argsAgent%"=="#True" (
 				if "#!returnValue!"=="#False" (set exitCode=6) else (set exitCode=0)
 			)
 		) else (
-			call :writeLog INFO installAgent "Agent 版本 [%version_Agent%] 小于或等于当前已安装的版本,无需再次安装" True True
+			call :writeLog INFO installAgent "Agent 版本 [!agentCurrentVersionDot!] 小于或等于当前已安装的版本,无需再次安装" True True
 			set exitCode=0
 		)
 	) else (
@@ -531,40 +538,17 @@ rem 安装Product
 if "#%argsProduct%"=="#True" (
 	call :writeLog INFO installProduct "开始处理安全产品安装" True True
 	if "#!uacStatus!"=="#True" (
-		if "#!sysType!"=="#Server" (
-			set version_Product=%version_Product_efsw%
-			set path_product_old_x86=%path_server_old_x86%
-			set path_product_old_x64=%path_server_old_x64%
-			set path_product_late_x86=%path_server_late_x86%
-			set path_product_late_x64=%path_server_late_x64%
-		) else (
-			set version_Product=%version_Product_eea%
-			set path_product_old_x86=%path_pc_old_x86%
-			set path_product_old_x64=%path_pc_old_x64%
-			set path_product_late_x86=%path_pc_late_x86%
-			set path_product_late_x64=%path_pc_late_x64%
-		)
 		call :getVersion Product
-		set returnValue=!returnValue:.=!
-		set productCurrentVersion=!returnValue:~,2!
-		set productInstallVersion=!version_Product:.=!
-		set productInstallVersion=!productInstallVersion:~,2!
-		if "#%argsForce%"=="#True" set productCurrentVersion=0
-		if !productCurrentVersion! lss !productInstallVersion! (
-			call :getSysArch
-			if "#!sysArch%!"=="#x64" (
-				set path_product_old=!path_product_old_x64!
-				set path_product_late=!path_product_late_x64!
-			) else (
-				set path_product_old=!path_product_old_x86!
-				set path_product_late=!path_product_late_x86!
-			)
-			if "#%argsEarly%"=="#True" set ntVerNumber=51
-			if !ntVerNumber! lss 61 (
-				set path_product=!path_product_old!
-			) else (
-				set path_product=!path_product_late!
-			)
+		call :formatVersion !returnValue!
+		set productCurrentVersionNoDot=!versionNoDot!
+		set productCurrentVersionDot=!versionDot!
+
+		call :formatVersion !version_Product!
+		set productInstallVersionNoDot=!versionNoDot!
+		set productInstallVersionDot=!versionDot!
+
+		if "#%argsForce%"=="#True" set productInstallVersionNoDot=0
+		if !productCurrentVersionNoDot! lss !productInstallVersionNoDot! (
 			if "#%absStatus%"=="#True" (
 				call :connectShare "!path_product!" %shareUser% %sharePwd%
 				call :writeLog DEBUG connectShareConnect "Product 共享连接状态是: [!returnValue!]" False True 
@@ -586,13 +570,13 @@ if "#%argsProduct%"=="#True" (
 				if "#!returnValue!"=="#False" (set exitCode=11) else (set exitCode=0)
 			)
 		) else (
-			call :writeLog INFO installProduct "安全产品版本 [!version_product!] 小于或等于当前已安装的版本,无需再次安装" True True
+			call :writeLog INFO installProduct "安全产品版本 [!productInstallVersionDot!] 小于或等于当前已安装的版本,无需再次安装" True True
 			set exitCode=0
 		)
 	) else (
 		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
-	)		
+	)
 )
 
 :esetSkip
@@ -623,6 +607,13 @@ if "#%argsSysStatus%"=="#True" (
 	set exitCode=0
 )
 
+rem 打印当前版本
+if "#%argsVersion%"=="#True" (
+	call :writeLog DEBUG printVersion "Current version: %version%" False True
+	echo Current version: %version%
+	set exitCode=0
+)
+
 rem 没有匹配的参数则报错
 if not "#%argsStatus%"=="#True" (
 	call :writeLog ERROR witeLog "参数解析错误，未找到合适的选项" True True
@@ -630,11 +621,16 @@ if not "#%argsStatus%"=="#True" (
 	goto :exitScript
 )
 
-
 rem exitCode: 正常:0,标准命令行报错:1,系统版本错误:2,系统平台错误:3,无法获取补丁包:4,有补丁安装失败或挂起:5,安装Agent失败:6,卸载agent失败:7,卸载product失败:8,进入安装模式失败:9,退出安装模式失败:10,安装product失败:11,Win7系统不是sp1:12，权限不足错误:96,参数错误:97,无法解析参数:98,未知错误:99
 :exitScript
- if %DEBUG%==True call :debug
 
+rem 测试函数,开启debug模式此处代码将被执行
+ if %DEBUG%==True (
+	call :getDownUrl
+	call :debug
+
+	set exitCode=999
+ )
 if "#%argsGui%"=="#True" (
 	call :writeLog INFO argsList "argsList:[!args!]" False True
 	call :writeLog INFO exit "按任意键结束" True True
@@ -660,6 +656,12 @@ echo ----------变量状态-----------
 set valueList=args sysType sysArch ntVer ntVerNumber errorlevel exitCode
 for %%a in (!valueList!) do echo %%a:[!%%a!]
 echo ----------变量状态-----------
+
+echo ----------URL-----------
+set valueList=path_agent  path_product hotfix_kb4490628 hotfix_kb4474419
+for %%a in (!valueList!) do echo %%a:[!%%a!]
+
+echo ----------URL-----------
 echo.
 echo --------------- debug ---------------
 goto :eof
@@ -682,8 +684,9 @@ echo  -s,	--status	[optional] Check status
 echo  -f,	--force		[optional] Skip some checks
 echo  -l,	--log		[optional] Disable log
 echo  -r,	--remove	[optional] Remove downloaded files
-echo  --avUninst		[optional] Remove antivirus of other
+echo  -i,    --avUninst	[optional] Remove antivirus of other
 echo  -u,	--gui		[optional] Like GUI show
+echo  -v,	--version	[optional] Print current version of the script.
 echo.
 echo		Example:%~nx0 -o --agent -l --remove
 echo\
@@ -709,14 +712,16 @@ echo.*	e.进入安全模式				*
 echo.*	x.退出安全模式				*
 echo.*	t.抓取ESET安装日志			*
 echo.*	s.检查状态				*
+echo.*	i.卸载其他软件				*
+echo.*	v.打印当前脚本版本			*
 echo.*	h.显示命令行帮助			*
 echo.*	kermit.yao@outlook.com			*
 echo.*						*
 echo.*************************************************
 echo.
 echo.
-set /p input=请选择:(a^|y^|o^|p^|n^|d^|e^|x^|g^|t^|s^|h):
-for %%a in (a y o p g n d e x t s h) do (
+set /p input=请选择:(a^|y^|o^|p^|n^|d^|e^|x^|g^|t^|s^|^i^|v^|h):
+for %%a in (a y o p g n d e x t s h i v) do (
 	if /i "#!input!"=="#%%a" (
 		cls
 		echo.
@@ -811,11 +816,16 @@ for %%a in (%*) do (
 	if /i "#%%a"=="#-u" set argsGui=True
 	if /i "#%%a"=="#--gui" set argsGui=True
 
+	if /i "#%%a"=="#-i" set argsAvUninst=True
 	if /i "#%%a"=="#--avUninst" set argsAvUninst=True
+
+	if /i "#%%a"=="#-v" set argsVersion=True
+	if /i "#%%a"=="#--version" set argsVersion=True
 	)
 )
 for %%a in (%argsList%) do (
 	if "#!%%a!"=="#True" set argsStatus=True
+	rem echo %%a: !%%a!
 )
 goto :eof
 
@@ -824,21 +834,77 @@ goto :eof
 set %1=!%2!
 goto :eof
 
+rem 获取点分版本号; 传入参数:%1 = 点分版本号, %2 = 点分的多少节;例：call :getVersionPrefix "10.1.2"; 返回值: versionPrefixDot = 点分版本,前两个节点, versionPrefix = 点分版本乘以 10000
+:getVersionPrefix
+for /f "delims=. tokens=1-2" %%a in ("%~1") do (
+	set versionPrefixDot=%%a.%%b
+	set /a dotVersion=%%b*10000
+	set versionPrefix=%%a!dotVersion!
+)
+
+goto :eof
+
 rem 卸载第三方杀毒软件
 :avUninst
 for %%a in (%avList%) do (
 	for /f "delims=: tokens=1*" %%b in (%%a) do (
-		for %%d in (%registryKey%) do (
-			for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
-				if not "%%~g"=="" (
-					if exist "%%~g" (
-						set avUninstFlag=True
-						call :writeLog INFO avUninst "启动【%%b】卸载程序: %%~g" True True
-						start /b "avUninst" "%%~g"
+		set proFlag=exe
+		echo %%~c|findstr "^{.*}$" >nul && set proType=msi
+		if not "!proType!" == "msi" (
+			for %%d in (%registryKey%) do (
+				for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
+					if not "%%~g"=="" (
+						if exist "%%~g" (
+							set avUninstFlag=True
+							call :writeLog INFO avUninst "启动【%%b】卸载程序: %%~g" True True
+							start /b "avUninst" "%%~g"
+						)
 					)
 				)
 			)
+		) else (
+			set isPresent=False
+			set avName=%%~c
+			set avName=!avName:{=!
+			set avName=!avName:}=!
+			for /f "delims={} tokens=2*" %%x in ('wmic product get ^| findstr /c:"!avName!"') do set avCode=%%x&set isPresent=True
+			if "!isPresent!" == "True" (
+				set avUninstFlag=True
+				call :writeLog INFO avUninst "启动【%%b】卸载程序: msiexec /x {!avCode!}" True True
+				if not "#%argsGui%"=="#True" (
+					start /b "avUninst" msiexec /qn /norestart /x {!avCode!}
+				) else (
+					start /b "avUninst" msiexec /qb /norestart /x {!avCode!}
+				)
+			)
 		)
+	)
+)
+goto :eof
+
+rem 当满足一定条件时,调用获取系统信息函数以提高运行效率.
+:getSysInfo
+set tmpArgsList_getSysVer=argsAll  argsHotfix argsProduct argsAgent argsEntrySafeMode argsExitSafeMode argsSysStatus argsEsetLog DEBUG
+for %%a in (%tmpArgsList_getSysVer%) do (
+	if "#!%%a!"=="#True" (
+		rem echo %%a: !%%a!
+		call :getSysVer
+	)
+)
+
+set tmpArgsList_getSysArch=argsAll argsHotfix argsProduct argsAgent argsSysStatus DEBUG
+for %%a in (%tmpArgsList_getSysArch%) do (
+	if "#!%%a!"=="#True" (
+		rem echo %%a: !%%a!
+		call :getSysArch
+	)
+)
+
+set tmpArgsList_getDownUrl=argsAll argsHotfix argsProduct argsAgent DEBUG
+for %%a in (%tmpArgsList_getDownUrl%) do (
+	if "#!%%a!"=="#True" (
+		rem echo %%a: !%%a!
+		call :getDownUrl
 	)
 )
 goto :eof
@@ -869,6 +935,104 @@ if !errorlevel! equ 0 (
 	set returnValue=True
 ) else (
 	set returnValue=False
+)
+goto :eof
+
+
+
+rem 获取当前系统所需下载链接; 传入参数:无需传入；例：call :getDownUrl ; 返回值: 无,相应含量将被赋值: path_product, path_agent, hotfix_kb4490628, hotfix_kb4474419
+:getDownUrl
+
+rem 获取服务器或PC链接
+if "#!sysType!"=="#Server" (
+	set version_Product=%version_Product_efsw%
+
+	set path_product_old_x86=%path_server_old_x86%
+	set path_product_old_x64=%path_server_old_x64%
+
+	rem set path_product_nt61_x86=%path_server_nt61_x86%
+	rem set path_product_nt61_x64=%path_server_nt61_x64%
+
+	set path_product_late_x86=%path_server_late_x86%
+	set path_product_late_x64=%path_server_late_x64%
+) else (
+	set version_Product=%version_Product_eea%
+	set path_product_old_x86=%path_pc_old_x86%
+	set path_product_old_x64=%path_pc_old_x64%
+
+	set path_product_nt61_x86=%path_pc_nt61_x86%
+	set path_product_nt61_x64=%path_pc_nt61_x64%
+
+	set path_product_late_x86=%path_pc_late_x86%
+	set path_product_late_x64=%path_pc_late_x64%
+)
+
+rem 获取64或32平台链接
+
+if "#!sysArch!"=="#x64" (
+		set hotfix_kb4490628=%path_hotfix_kb4490628_x64%
+		set hotfix_kb4474419=%path_hotfix_kb4474419_x64%
+
+		set path_agent_old=%path_agent_old_x64%
+		set path_agent_late=%path_agent_late_x64%
+
+		set path_product_old=!path_product_old_x64!
+		set path_product_nt61=!path_product_nt61_x64!
+		set path_product_late=!path_product_late_x64!
+) else (
+		set hotfix_kb4490628=%path_hotfix_kb4490628_x86%
+		set hotfix_kb4474419=%path_hotfix_kb4474419_x86%
+
+		set path_agent_old=%path_agent_old_x86%
+		set path_agent_late=%path_agent_late_x86%
+
+		set path_product_old=!path_product_old_x86!
+		set path_product_nt61=!path_product_nt61_x86!
+		set path_product_late=!path_product_late_x86!
+)
+
+rem 根据系统版本判断相应链接
+if "#%argsEarly%"=="#True" set ntVerNumber=51
+if !ntVerNumber! lss 100 (
+
+	set path_agent=!path_agent_late!
+	set path_product=!path_product_late!
+
+	if !ntVerNumber! equ 61 (
+		set version_Product=9.1
+		set path_product=!path_product_nt61!
+	)
+
+	if !ntVerNumber! lss 61 (
+		set version_Agent=8.0
+		set version_Product=6.5
+		set path_agent=!path_agent_old!
+		set path_product=!path_product_old!
+	)
+) else (
+	set path_agent=!path_agent_late!
+	set path_product=!path_product_late!
+)
+
+goto :eof
+
+rem 格式化版本,便于后续计算;传入参数: % = 版本号；例：call :formatVersion 9.12 ; 返回值: 变量: versionNoDot,versionDot 将被赋值
+
+:formatVersion
+for /f "delims=. tokens=1-2" %%a in ("%~1") do (
+	if  not "%%a"=="" (
+		set intNum=%%a
+		set /a intNumX=intNum * 1000
+
+	)
+	if  not "%%b"=="" (
+		set decNum=%%b
+		set /a decNumX=decNum * 1000
+		set decNumX=!decNumX:~,3!
+		
+	)
+	set /a versionNoDot=intNumX+decNumX
+	set versionDot=!intNum!.!decNum!
 )
 goto :eof
 
@@ -993,7 +1157,6 @@ if not "#!sysVersion!"=="#WindowsXP" (
 	echo 是否配置为安全模式:!safeModeStatus!
 )
 
-call :getSysArch
 echo 系统平台类型:!sysArch!
 
 call :getHotfixStatus KB4474419 KB4490628
@@ -1198,6 +1361,5 @@ function download(downUrl, savePath)
     catch(Err){
         WScript.StdOut.Write('False');
     }
-
 }
 
