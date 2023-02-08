@@ -31,6 +31,8 @@ goto :begin
 ::* v2.0.0_20230113_beta
 	1.修复 处理之前遗留问题,完善版本判断罗辑；功能性测试.
 
+::* v2.0.1_20230208_beta
+	1.修复 Server 2008 安装无法获取安全产品下载链接的问题. (待服务器v10版本更新后,修正此处代码)
 
 :: -------------待优化----------
 	1.xp在调用 getVersion agent 时报错
@@ -78,7 +80,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@set version=v2.0.0_20230111_bate
+@set version=v2.0.1_20230208_beta
 @echo off
 setlocal enabledelayedexpansion
 
@@ -952,6 +954,9 @@ if "#!sysType!"=="#Server" (
 
 	rem set path_product_nt61_x86=%path_server_nt61_x86%
 	rem set path_product_nt61_x64=%path_server_nt61_x64%
+
+	set path_product_nt61_x86=%path_server_late_x86%
+	set path_product_nt61_x64=%path_server_late_x64%
 
 	set path_product_late_x86=%path_server_late_x86%
 	set path_product_late_x64=%path_server_late_x64%
