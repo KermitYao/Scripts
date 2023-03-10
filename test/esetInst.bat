@@ -34,6 +34,13 @@ goto :begin
 ::* v2.0.1_20230208_beta
 	1.修复 Server 2008 安装无法获取安全产品下载链接的问题. (待服务器v10版本更新后,修正此处代码)
 
+::* v2.0.2_20230308_beta
+	1.修复 某些情况下使用js下载失败,但是未能切换到powershell下载的问题。
+	2.修复 下载时未能将下载方式写入日志的问题
+
+::* v2.0.2_20230310_beta
+	1.修复 当下载失败时等待时间过长的问题
+
 :: -------------待优化----------
 	1.xp在调用 getVersion agent 时报错
 	在此行代码中:for /f "delims=" %%x in ('reg query %%a /v ProductName 2^>nul ^| findstr /c:"ESET Management Agent"') do (
@@ -42,7 +49,7 @@ goto :begin
 ::-----readme-----
 
 快速使用:
-	修改96行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
+	修改135行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
 
 
 概述:
@@ -80,7 +87,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@set version=v2.0.1_20230208_beta
+@set version=v2.0.2_20230308_beta
 @echo off
 setlocal enabledelayedexpansion
 
@@ -503,9 +510,9 @@ if "#%argsAgent%"=="#True" (
 				call :writeLog INFO downloadAgent "[!path_agent!] 下载状态是: [!returnValue!]" True True 
 				set path_agent=%path_Temp%\agent.msi
 
-				call :writeLog INFO downloadAgentConfig "开始下载Agent config: [install_config.ini]" True True
+				call :writeLog INFO downloadAgentConfig "开始下载Agent config: [!path_agent_config!]" True True
 				call :downFile "%~f0" "!path_agent_config!" "%path_Temp%\install_config.ini"
-				call :writeLog INFO downloadAgentConfig "install_config.ini 下载状态是: [!returnValue!]" True True 
+				call :writeLog INFO downloadAgentConfig "!path_agent_config! 下载状态是: [!returnValue!]" True True 
 				set path_agent_config=%path_Temp%\install_config.ini
 			)
 			if not exist "!path_agent!" (
@@ -1215,29 +1222,46 @@ rem 下载文件; 传入参数: %1 = 当前文件路径， %2 = url, %3 = 保存地址; 例：call :d
 :downFile
 set downStatus=False
 for  /f %%a in  ('cscript /nologo /e:jscript "%~f1" /downUrl:%2 /savePath:%3') do (
-	if "#%%a"=="#True" set downStatus=True
-	call :writeLog witeLog INFO "The file [%~2] was download by "jscript"" False True 
-)
-
-if "#!downStatus!"=="#False" (
-	if not "#%sysVersion%"=="#WindowsXp" (
-		for  /f "delims=" %%a in  ('powershell -Command "& {(New-Object Net.WebClient).DownloadFile('%~2', '%~3');($?)}" 2^>nul') do (
-				if "#%%a"=="#True" set downStatus=True
-				call :writeLog witeLog INFO "The file [%~2] was download by "powershell"" False True 
+	call :writeLog INFO fileDownload "The file [%~2] was download by jscript" False True
+	if "#%%a"=="#True" (
+		call :checkFileSize "%~3"
+		if "#!returnValue!"=="#True" (
+			set downStatus=True
 		)
 	)
 )
 
-if exist "%~3" (
-	set /a currentFileSize=%~z3/1024
-	if !currentFileSize! lss %errorFileSize% (
-		set downStatus=False
-		move "%~3" "%~3.error"
+if "#!downStatus!"=="#False" (
+	if not "#%sysVersion%"=="#WindowsXp" (
+		call :writeLog INFO fileDownload "The file [%~2] was download by powershell" False True 
+		for  /f "delims=" %%a in  ('powershell -Command "& {(New-Object Net.WebClient).DownloadFile('%~2', '%~3');($?)}" 2^>nul') do (
+			if "#%%a"=="#True" (
+				call :checkFileSize "%~3"
+				if "#!returnValue!"=="#True" (
+					set downStatus=True
+				)
+			)
+		)
 	)
-
 )
 
 set returnValue=!downStatus!
+goto :eof
+
+rem 检查下载文件是否正确,通过检测文件大小判断; 传入参数: 文件路径 ; 例: call :checkFileSize "%temp%\esetInst\eea.msi" ; 返回值: returnValue=True | False
+:checkFileSize
+set downStatus=False
+
+if exist "%~1" (
+	set /a currentFileSize=%~z1/1024
+	if !currentFileSize! lss %errorFileSize% (
+		set downStatus=False
+		move /y "%~1" "%~1.error" >Nul
+	) else (
+		set downStatus=True
+	)
+)
+set returnValue=%downStatus%
 goto :eof
 
 rem 获取UAC状态; 传入参数: 无参数传入 ; 例：call :getUac ; 返回值: returnValue=True | False | Null

@@ -14,6 +14,7 @@ class GetEppData():
         self.urlHost = ''
         self.randomStr = ''.join(random.sample(string.ascii_letters + string.digits + string.punctuation, 32))
 
+    #初始化token
     def initToken(self,appInfo,urlHost):
         intStr = (appInfo['appKey'] + self.randomStr + appInfo['appSecret'] + str(int(time.time()))).encode("utf-8")
         md5Str = hashlib.md5(intStr).hexdigest()
@@ -46,6 +47,7 @@ class GetEppData():
             print('Token 信息未获取!')
             return False
 
+    #解析数据
     def __deData(self,data):
         print(data)
         deData = base64.b64decode(data['data'])
@@ -61,7 +63,7 @@ class GetEppData():
         print("str:%s" % str(deData))
         '''
         return deData
-
+    #获取组信息
     def getGroupTree(self):
         if self.__checkToken() == False:
             return False
