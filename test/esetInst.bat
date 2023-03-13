@@ -41,6 +41,9 @@ goto :begin
 ::* v2.0.2_20230310_beta
 	1.修复 当下载失败时等待时间过长的问题
 
+::* v2.0.3_20230313_beta
+	1.修复 -r 参数删除临时文件无效的问题
+	2.修复 卸载第三方软件时不在判断路径是否存在(暂定)
 :: -------------待优化----------
 	1.xp在调用 getVersion agent 时报错
 	在此行代码中:for /f "delims=" %%x in ('reg query %%a /v ProductName 2^>nul ^| findstr /c:"ESET Management Agent"') do (
@@ -591,11 +594,13 @@ if "#%argsProduct%"=="#True" (
 :esetSkip
 
 rem 删除已下载的临时文件
-if "#%argsDel%"=="#True" (
+if "#%argsRemove%"=="#True" (
 	call :writeLog INFO delTempFile "开始删除临时文件" True True
+	pushd %path_Temp%
 	for %%a in (*.msi *.cab) do (
 		del /f /q %%a
 	)
+	popd
 )
 
 rem 抓取ESET安装日志
@@ -863,11 +868,11 @@ for %%a in (%avList%) do (
 			for %%d in (%registryKey%) do (
 				for /f "tokens=1-2*" %%e in ('reg query "%%~d\%%~c" /v %registryValue% 2^>nul') do (
 					if not "%%~g"=="" (
-						if exist "%%~g" (
-							set avUninstFlag=True
-							call :writeLog INFO avUninst "启动【%%b】卸载程序: %%~g" True True
-							start /b "avUninst" "%%~g"
-						)
+						set avUninstFlag=True
+						set tempMsg=%%g
+						set tempMsg=!tempMsg:"=!
+						call :writeLog INFO avUninst "启动【%%b】卸载程序: !tempMsg!" True True
+						start /b "avUninst" "%%~g"
 					)
 				)
 			)
