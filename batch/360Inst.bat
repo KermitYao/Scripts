@@ -22,7 +22,7 @@ setlocal enabledelayedexpansion
 ::-----------user var-----------
 
 rem 设置360只能安装包下载地址
-set sdUrl=http://192.168.16.196:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
+set sdUrl=http://yjyn.top:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
 
 rem 开启此参数，命令行指定参数和gui选择将会失效;
 rem 相当于强制使用命令行参数；
@@ -30,28 +30,14 @@ rem 如果不需要保持为空即可
 rem 使用方法 ： SET DEFAULT=-o --agent -l --remove -, 与正常的cmd参数保持一致
 SET DEFAULT_ARGS=
 
+::-----------user var-----------
+
+rem ----------- init -----------
 rem 日志等级 DEBUG|INFO|WARNING|ERROR
 set logLevel=DEBUG
 
-::-----------user var-----------
-
-rem 用于域控推送的时候静默运行 True|False
-set quiet=False
-
-rem 脚本会搜索其他软件,并弹出卸载窗口, 通过 avList 变量指定
-set argsAvUninst=False
-
-rem 脚本会自动安装360epp客户端
-set args360Inst=True
-
-rem 设置日志等级
-set logLevel=DEBUG
-
 rem 调试开关
-set DEBUG=True
-
-rem ----------- init -----------
-set DEBUG=True
+set DEBUG=False
 set bugTest=echo -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 rem 解析参数列表
@@ -69,7 +55,7 @@ if "#%DEFAULT_ARGS%"=="#" (
 ) else (
 	set args=%DEFAULT_ARGS%
 )
-
+set initProductName=360终端安全管理系统
 rem 下载文件阈值,小于多少判定为下载失败,  单位kb
 set errorFileSize=4
 
@@ -83,14 +69,13 @@ call :getArgs %args%
 
 rem 用于启动第三方杀毒软件卸载程序,本质是搜索注册表键值,如果存在相应的键值,则启动卸载程序
 rem 以键的方式配置, "产品名称:注册表键值名称", 如果是msi类安装程序建议使用 {程序安装代码或名称},脚本会自动搜索 wimc product 进行匹配
-set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security" "赛门铁克:{Symantec Endpoint Protection}"
+set avList= "360安全卫士:360安全卫士" "360杀毒:360SD" "腾讯电脑管家:QQPCMgr" "火绒安全软件:HuorongSysdiag" "亚信安全:OfficeScanNT" "金山毒霸:Kingsoft Internet Security" "赛门铁克:{Symantec Endpoint Protection}" "ESET代理:{ESET Management Agent}" "ESET 杀毒:{ESET Endpoint Antivirus}"
 set registryKey="HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall" "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 set registryValue="UninstallString"
 
 rem 下载文件阈值,小于多少判定为下载失败,  单位kb
 set errorFileSize=4
 
-if "%~1"=="/q" set quiet=True
 for /f "delims=/ tokens=4" %%a in ("%sdUrl%") do (
 	echo %%a|findstr "^Ent_360EPP[0-9]*\[.*\]-W.exe" >nul
 	if !errorlevel! equ 0 set name_360=%%a
@@ -112,32 +97,6 @@ if "#%argsHelp%"=="#True" (
 echo 正在处理相关信息...
 call :getSysInfo
 call :getUac
-rem 判断epp是否安装
-for %%a in (%registryKey%) do (
-	for /f "tokens=1-2*" %%e in ('reg query "%%~a\360EPPX" /v %registryValue% 2^>nul') do (
-		if not "%%~g"=="" (
-			set eppFlag=True
-			set eppPath=%%~g
-		)
-	)
-)
-
-rem 删除已下载的临时文件
-if "#%argsRemove%"=="#True" (
-	call :writeLog INFO delTempFile "开始删除临时文件" True True
-	pushd %path_Temp%
-	for %%a in (*.exe *.error) do (
-		del /f /q %%a
-	)
-	popd
-)
-
-rem 打印系统状态
-if "#%argsSysStatus%"=="#True" (
-	call :writeLog INFO printSysStatus "开始打印系统状态" True True
-	call :getStatus
-	set exitCode=0
-)
 
 rem 打印当前版本
 if "#%argsVersion%"=="#True" (
@@ -179,12 +138,12 @@ if "#%argsUndoProduct%"=="#True" (
 	call :writeLog INFO uninstallProduct "开始处理安全产品卸载" True True
 	if "#!uacStatus!"=="#True" (
 		if "#!productName!"=="#" (
-			call :writeLog WARNING uninstallProduct "【360终端安全管理系统】 未安装,无需卸载" True True
+			call :writeLog WARNING uninstallProduct "【%initProductName%】 未安装,无需卸载" True True
 		) else (
 			call :writeLog INFO uninstallProduct "开始卸载 [!productName!]" True True
 
 			set tempAvList=%avList%
-			set avList="360终端安全管理系统:360EPPX"
+			set avList="%initProductName%:360EPPX"
 			call :avUninst
 			set avList=%tempAvList%
 			call :writeLog INFO uninstallProduct "如果有弹出卸载窗口,请请手动点击卸载程序选项进行卸载..." True True
@@ -196,19 +155,87 @@ if "#%argsUndoProduct%"=="#True" (
 	)		
 )
 
+rem 安装Product
+if "#%argsProduct%"=="#True" (
 
+	call :writeLog INFO installProduct "开始处理安全产品安装" True True
+	if "#!uacStatus!"=="#True" (
+		if "#%regStatus%+%processStatus%"=="#True+True" (
+			call :writeLog INFO installProduct "安全产品版本 [%initProductName%] 已安装,无需再次安装" True True
+			set exitCode=0
+		) else (
+			if "%name_360%"=="" (
+				call :writeLog INFO installProduct "下载链接错误无法正确解析: [%initProductName%] 中止安装" True True
+			) else (
+				call :writeLog INFO downloadProduct "开始下载安全产品: [%sdUrl%]" True True
+				call :downFile "%~f0" "%sdUrl%" "%path_Temp%\%name_360%"
+				call :writeLog INFO downloadProduct "Product.msi 下载状态是: [!returnValue!]" True True 
+				set path_product=%path_Temp%\%name_360%
+			)
+		)
+		if not exist "!path_product!" (
+			call :writeLog ERROR installProduct "未找到可使用的路径:[!path_product!],安全产品安装失败" True True
+			set exitCode=11
+		) else (
+			call :writeLog INFO installProduct "开始安装安全产品: [!path_product!]" True True
+
+			if "#%argsGui%"=="#True" (
+				start /b "360Install" "!path_product!"
+			) else (
+				start /b "360Install" "!path_product!" /s
+				
+			)
+			echo\
+			echo 这个过程可能需要10分钟左右的时间,请稍后...
+			echo\
+			call :checkInstStatus 600
+			if "!instStatus!"=="2" (
+				call :writeLog ERROR installProduct "安全产品 [!path_product!] 安装状态是:[失败],请检查系统环境或联系管理员" True True
+				set exitCode=11
+			) else if "!instStatus!"=="1" (
+				call :writeLog ERROR installProduct "安全产品 [!path_product!] 安装状态是:[超时],请检查系统环境或联系管理员" True True
+				set exitCode=11
+			) else if "!instStatus!"=="0" (
+				call :writeLog ERROR installProduct "安全产品 [!path_product!] 安装状态是:[成功]" True True
+				echo\
+				echo 如果客户端未能正常启动,请重启电脑后即可正常启动.
+				echo\
+				set exitCode=0
+			) else (
+				call :writeLog ERROR installProduct "安全产品 [!path_product!] 安装状态是:[未知],请检查系统环境或联系管理员" True True
+				set exitCode=11
+			)
+		)
+	) else (
+		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		set exitCode=96
+	)
+)
+
+rem 删除已下载的临时文件
+if "#%argsRemove%"=="#True" (
+	call :writeLog INFO delTempFile "开始删除临时文件" True True
+	pushd %path_Temp%
+	for %%a in (*.exe *.error) do (
+		del /f /q %%a
+	)
+	popd
+)
+
+rem 打印系统状态
+if "#%argsSysStatus%"=="#True" (
+	call :writeLog INFO printSysStatus "开始打印系统状态" True True
+	call :getStatus
+	set exitCode=0
+)
 goto :exitScript
 rem exitCode: 正常:0,标准命令行报错:1,系统版本错误:2,系统平台错误:3,无法获取补丁包:4,有补丁安装失败或挂起:5,安装Agent失败:6,卸载agent失败:7,卸载product失败:8,进入安装模式失败:9,退出安装模式失败:10,安装product失败:11,Win7系统不是sp1:12，权限不足错误:96,参数错误:97,无法解析参数:98,未知错误:99
 :exitScript
 
 
-
-
-
 rem 测试函数,开启debug模式此处代码将被执行
  if %DEBUG%==True (
 	call :debug
-
 	set exitCode=999
  )
 if "#%argsGui%"=="#True" (
@@ -219,55 +246,6 @@ if "#%argsGui%"=="#True" (
 ) else (
 	exit /b %exitCode%
 )
-
-
-:temp
-if "%eppFlag%"=="True" (
-	echo 检测到已经安装EPP,无需再次安装.
-	set exitCode=0
-	goto :close
-)
-rem 卸载第三方安全软件
-if "#%argsAvUninst%"=="#True" (
-	echo 开始扫描第三方安全软件...
-	call :avUninst
-	if "!avUninstFlag!"=="" (
-		echo 未扫描到其他安全软件.
-	) else (
-		echo 请手动点击卸载程序选项进行卸载...
-		if not "%quiet%"=="True" (
-		echo 按任意键进行下一步操作.
-		pause >nul
-			)
-		)	
-)
-
-rem 下载360安装文件
-if "#%args360Inst%"=="#True" (
-	echo 开始下载360安装文件: [%sdUrl%]
-	call :downFile "%~f0" "%sdUrl%" "%path_Temp%\%name_360%"
-	if "#!returnValue!"=="#True" (
-		if exist "%path_Temp%\%name_360%" (
-			echo 启动360安装程序...
-			if "%quiet%"=="True" (
-				start /b "360Install" "%path_Temp%\%name_360%" /s
-				set exitCode=0
-			) else (
-				start /b "360Install" "%path_Temp%\%name_360%"
-				set exitCode=0
-			)
-
-		) else (
-			echo 未知错误,无法启动360安装程序.
-			set exitCode=99
-		)
-	) else (
-		echo 360安装文件下载失败.
-		set exitCode=1
-	)
-)
-
-goto :eof
 
 rem ----------- begin end -----------
 
@@ -299,8 +277,8 @@ goto :eof
 echo  Usage: %~nx0 [options]
 echo\
 echo  -h,	--help		打印命令行帮助
-echo  -p,	--product	安装【360终端安全管理系统】
-echo  -d,	--undoProduct	卸载【360终端安全管理系统】
+echo  -p,	--product	安装【%initProductName%】
+echo  -d,	--undoProduct	卸载【%initProductName%】
 echo  -s,	--status	检查状态
 echo  -l,	--log		关闭日志打印
 echo  -r,	--remove	删除临时文件
@@ -390,8 +368,8 @@ for %%a in (%*) do (
 )
 for %%a in (%argsList%) do (
 	if "#!%%a!"=="#True" set argsStatus=True
-	echo error
-	echo %%a: !%%a!
+	rem echo error
+	rem echo %%a: !%%a!
 )
 goto :eof
 
@@ -471,10 +449,13 @@ for %%a in (%avList%) do (
 			if "!isPresent!" == "True" (
 				set avUninstFlag=True
 				call :writeLog INFO avUninst "启动【%%b】卸载程序: msiexec /x {!avCode!}" True True
+				echo\
+				echo	等待卸载完成...
+				echo\
 				if not "#%argsGui%"=="#True" (
-					start /b "avUninst" msiexec /qn /norestart /x {!avCode!}
+					start /b /wait "avUninst" msiexec /qn /norestart /x {!avCode!}
 				) else (
-					start /b "avUninst" msiexec /qb /norestart /x {!avCode!}
+					start /b /wait "avUninst" msiexec /qb /norestart /x {!avCode!}
 				)
 			)
 		)
@@ -505,13 +486,10 @@ echo 中心地址:%productConnectAddress%
 echo 授权  ID:%productEppID%
 echo 上次通讯:%productLastConnectTime%
 
-if not "#%productConnectAddress%"=="#" set regStatus=True
-tasklist /FI "IMAGENAME eq 360epp.exe"|findstr "360epp.exe" >nul&& set processStatus=True
-
 if "#%regStatus%+%processStatus%"=="#True+True" (
-	echo ***************** 【360终端安全管理系统】安装正常 *****************
+	echo ***************** 【%initProductName%】安装正常 *****************
 ) else (
-	echo ***************** 【360终端安全管理系统】安装异常 *****************
+	echo ***************** 【%initProductName%】安装异常 *****************
 )
 
 goto :eof
@@ -617,6 +595,42 @@ if "#"=="#!sysArch!" (
 )
 goto :eof
 
+rem 循环检查安装是否完成; 传入参数： %1 超时时间； 例： call :checkInstStatus 600; 返回值: instStatus = True | False
+:checkInstStatus
+set loopTimes=%1
+set loopInit=1
+set instStatus=3
+:checkInstStatusLoop
+set instProcessStatus=False
+call :getProductInfo
+tasklist /FO CSV /FI "IMAGENAME eq %name_360%" 2>nul|findstr /c:"%name_360%" >nul&& set instProcessStatus=True
+if "%instProcessStatus%"=="True" (
+	if "#%regStatus%+%processStatus%"=="#True+True" (
+		set instStatus=0
+		goto :checkInstStatusBreak
+	) else (
+		set /a loopInit+=1
+		ping /n 2 127.0.0.1 >nul
+	)
+) else (
+	if "#%regStatus%+%processStatus%"=="#True+True" (
+		set instStatus=0
+		goto :checkInstStatusBreak
+	) else (
+		set instStatus=2
+		goto :checkInstStatusBreak
+	)
+)
+
+if %loopInit% GEQ %loopTimes% (
+	set instStatus=1
+	goto :checkInstStatusBreak
+)
+
+goto :checkInstStatusLoop
+:checkInstStatusBreak
+goto :eof
+
 rem 获取软件版本; 传入参数: %1 =Product | Agent ; 例：call :getVersion Product; 返回值:returnValue=版本号 | Null,如果产品存在则以下变量会被赋值：productCode,productName,productVersion,productDir
 :getProductInfo
 set productName=
@@ -625,6 +639,9 @@ set productInstTime=
 set productConnectAddress=
 set productEppID=
 set productLastConnectTime=
+set processStatus=False
+set regStatus=False
+tasklist /FI "IMAGENAME eq 360epp.exe" 2>nul|findstr "360epp.exe" >nul&& set processStatus=True
 if "%sysArch%"=="x64" (
 	set regPath="HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\360Safe\360EntSecurity"
 ) else (
@@ -640,6 +657,7 @@ for /f "tokens=1,2*" %%a in ('reg query %regPath% 2^>nul') do (
 	if "%%a"=="Partner" (set productEppID=%%c)
 	if "%%a"=="SYSTEMConnectedTime" (set productLastConnectTime=%%c)
 )
+if not "#%productConnectAddress%"=="#" set regStatus=True
 goto :eof
 
 rem 当满足一定条件时,调用获取系统信息函数以提高运行效率.

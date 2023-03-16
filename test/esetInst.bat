@@ -44,6 +44,7 @@ goto :begin
 ::* v2.0.3_20230313_beta
 	1.修复 -r 参数删除临时文件无效的问题
 	2.修复 卸载第三方软件时不在判断路径是否存在(暂定)
+	3.修复 卸载msi软件时等待卸载程序结束
 :: -------------待优化----------
 	1.xp在调用 getVersion agent 时报错
 	在此行代码中:for /f "delims=" %%x in ('reg query %%a /v ProductName 2^>nul ^| findstr /c:"ESET Management Agent"') do (
@@ -886,9 +887,9 @@ for %%a in (%avList%) do (
 				set avUninstFlag=True
 				call :writeLog INFO avUninst "启动【%%b】卸载程序: msiexec /x {!avCode!}" True True
 				if not "#%argsGui%"=="#True" (
-					start /b "avUninst" msiexec /qn /norestart /x {!avCode!}
+					start /b /wait "avUninst" msiexec /qn /norestart /x {!avCode!}
 				) else (
-					start /b "avUninst" msiexec /qb /norestart /x {!avCode!}
+					start /b /wait "avUninst" msiexec /qb /norestart /x {!avCode!}
 				)
 			)
 		)
