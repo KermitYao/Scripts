@@ -8,7 +8,8 @@
 ::* 2022-06-09 修复无法正确验证安装状态
 ::* 2022-07-22 1.修复安装状态提示不准确; 2.修复agent安装总是提示用户输入配置信息的错误; 3.修复获取状态时，产品版本无法显示的问题; 4.增加对非管理员权限运行的提示
 ::* 2023-01-07 1.新增 现在 -s参数现在可以看到 主机名称和地址了; 2.修复 http代理无效的问题; 3.更新 自动选择版本安装现在是通过一个变量指定 【instLaterSysList】此变量包含的系统安装最新版本,否则自动安装4.5,以前通过 uname 获取内核版本,会出现逻辑错误; 4.修复 指定 -b 参数安装4.5时未能自动判断版本,总是重新安装的问题;5.更新 现在未指定-u 参数时,如果安装agent过成功未能成功解析配置文件将直接退出,因为可能是自动化安装,不应该出现阻塞问题; 6. 优化代码逻辑
-
+::* v1.3.1_2023031_beta
+    1.更新 rocky linux 9.1 支持安装新版本
 快速使用:
 	修改70行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
 
@@ -112,7 +113,7 @@ eraConfFile="/etc/opt/eset/RemoteAdministrator/Agent/config.cfg"
 argsList="argsHelp argsAll argsAuto argsBefore argsAgent argsProduct argsUndoAgent argsUndoProduct argsConsole argsStatusInfo argsLog argsRemove argsGui argsUnpack argsProxy"
 
 #安装最新版本杀毒的系统列表, 从 /etc/os-release 取 NAME 和 VERSION_ID 的值成对填入下面,以逗号分隔
-instLaterSysList="CentOS Linux:7, Oracle Linux Server:8.0, Ubuntu:20.04"
+instLaterSysList="CentOS Linux:7, Oracle Linux Server:8.0, Ubuntu:20.04， Rocky Linux：9.1"
 
 userID=$(id -u)
 
