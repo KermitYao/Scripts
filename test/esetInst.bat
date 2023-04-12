@@ -182,6 +182,10 @@ if %absStatus%==False (
 	set path_server_old_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
 	set path_server_old_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
+	rem Server2008系统专用杀毒软件,需低于v10建议使用 v9.1
+	set path_server_nt61_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_v9.1.msi
+	set path_server_nt61_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_v9.1.msi
+
 	rem 建议使用最新版本
 	set path_server_late_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi
 	set path_server_late_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_later.msi
@@ -965,11 +969,8 @@ if "#!sysType!"=="#Server" (
 	set path_product_old_x86=%path_server_old_x86%
 	set path_product_old_x64=%path_server_old_x64%
 
-	rem set path_product_nt61_x86=%path_server_nt61_x86%
-	rem set path_product_nt61_x64=%path_server_nt61_x64%
-
-	set path_product_nt61_x86=%path_server_late_x86%
-	set path_product_nt61_x64=%path_server_late_x64%
+	set path_product_nt61_x86=%path_server_nt61_x86%
+	set path_product_nt61_x64=%path_server_nt61_x64%
 
 	set path_product_late_x86=%path_server_late_x86%
 	set path_product_late_x64=%path_server_late_x64%

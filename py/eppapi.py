@@ -50,21 +50,20 @@ class GetEppData():
     #解析数据
     def __deData(self,data):
         print(data)
+        print('')
         deData = base64.b64decode(data['data'])
-        
-        '''
+        deData = deData[4:]
+        appkey = self.appInfo['appKey'].encode()
         if len(self.appInfo['iv']) % 16 != 0:
-            iv = pad(self.appInfo['iv'].encode("utf-8"), 16)
+            iv = pad(self.appInfo['iv'].encode(), 16)
         else:
-            iv = self.appInfo['iv'].encode("utf-8")
-        print(iv)
-        cipher = AES.new(self.appInfo['appKey'].encode("utf-8"), AES.MODE_CBC, iv)
-        deData = cipher.decrypt(deData)
-        print("str:%s" % str(deData))
-        '''
-        return deData
+            iv = self.appInfo['iv'].encode()
+        aes = AES.new(appkey,AES.MODE_CBC,iv)
+        deData = aes.decrypt(deData)
+        
+        return deData[1:]
     #获取组信息
-    def getGroupTree(self):
+    def getData(self):
         if self.__checkToken() == False:
             return False
         urlPath = '/openapi/statistics/virus'
@@ -97,7 +96,9 @@ def main():
     tokenState = app.initToken(appInfo,urlHost)
     if tokenState :
         print('Get token okey!')
-        print(app.getGroupTree())
+        s = app.getData()
+        with open('s.text',"wb+") as f:
+            f.write(s)
         return  tokenState
     else:
         print('Get token failed')
