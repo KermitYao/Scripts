@@ -10,7 +10,7 @@ If Not StringRegExp($t, $allow_t) Then
 EndIf
 
 Dim $argsState, $args_h, $args_r, $args_s, $args_t, $args_m, $args_v, $r_var,  $s_var, $t_var, $args_min, $min_var
-Dim $avList[8] = [7, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX", "{Symantec Endpoint Protection}"]
+Dim $avList[9] = [8, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX", "{Symantec Endpoint Protection}", "OfficeScanNT"]
 Dim $winStateList[5] = [5, @SW_HIDE, @SW_MINIMIZE, @SW_MAXIMIZE, @SW_DISABLE]
 Global $exitCode, $delay, $winState
 ; 功能增加.问题修复.细节修复或描述更改
@@ -21,7 +21,8 @@ Global $exitCode, $delay, $winState
 ; * 2022-12-10 1.添加对 360安全卫士卸载支持;2.添加对 360企业版 epp6200杀毒软件的卸载支持
 ; * 2022-12-25 1.添加对 赛门铁克安全软件的卸载支持(不完整支持); 
 ; * 2023-1-5 1.添加对 msi格式的卸载支持, 通过{name}形式指定; 
-Dim $ver = "1.6.1"
+; * 2023-4-27 1.添加对亚信安全的卸载支持
+Dim $ver = "1.6.2"
 
 ;指定默认参数, 参数之间以 "," 逗号分隔,用于替代命令行参数;优先级高于命令行
 Dim $args = ''
@@ -123,6 +124,9 @@ Func removeAv($avName, $avUninstPath,$version)
 		Case $avName == "{Symantec Endpoint Protection}"
 			$avResult = rmSep($avName, $avUninstPath)
 			$exitCode = $avResult
+		Case $avName == "OfficeScanNT"
+			$avResult = rmAis($avName, $avUninstPath)
+			$exitCode = $avResult
 		Case Else
 			ConsoleWrite("case Else")
 	EndSelect
@@ -133,6 +137,58 @@ EndFunc
 ;[.]color=rgb(102,102,102);hovercolor=rgb(153,153,153);linkcolor=rgb(51,51,51);font=微软雅黑;underline=true;fsize=-13;link=1139;ls=6;[/.]继续卸载>
 
 
+Func rmAis($avName, $avUninstPath)
+	Local $avHandle
+	$avTitle = "亚信安全防毒墙网络版卸载"
+	;Please enter the uninstall password:
+	$avSubTitle="卸载亚信安全防毒墙网络版"
+	;若窗口已存在,则可能正在卸载,则退出程序.
+	$avHandle = WinGetHandle($avTitle)
+	If Not @error = 1 Then Return 12
+	$iPid = Run($avUninstPath)
+
+	If Not $delay = "" Then
+		$avHandle = WinWait($avTitle,"",$delay)
+	Else
+		$avHandle = WinWait($avTitle)
+	EndIf
+		
+	If IsHWnd($avHandle) Then 
+		If Not $s_var = "" Then
+			WinSetState($avHandle, "",$winState)
+		EndIf
+		
+		If Not $delay = "" Then
+			$avSubHandle =  WinWait($avSubTitle,"",$delay)
+		Else
+			$avSubHandle =  WinWait($avSubTitle)
+		EndIf
+		
+		If IsHWnd($avSubHandle) Then
+			ControlSetText($avSubHandle,"","Edit1","654321")
+			ControlSend($avSubHandle,"","Button1","{enter}")
+			Dim $flagUninstState
+			If Not $delay = "" Then
+				$loopTimes = $delay * 100
+				$iPidState = WinWaitClose($avTitle,"", $delay * 1000)
+			Else
+				$loopTimes = 1
+				$iPidState = WinWaitClose($avTitle)
+			EndIf
+
+			If $iPidState Then
+				$flagUninstState = True
+				$exitCode = getUninstState($avName, $avUninstPath)
+			Else
+				$exitCode = 5
+			EndIf
+		Else
+			$exitCode = 4
+		EndIf
+	EndIf
+	Return $exitCode
+	ConsoleWrite($avUninstPath)
+EndFunc
 
 ;卸载360安全卫士
 Func rm360safe($avName, $avUninstPath)
@@ -704,6 +760,8 @@ Func printHelp()
 		"            4    腾讯电脑管家【15.4】" & @CRLF & _
 		"            5    金山毒霸【15.2】" & @CRLF & _
 		"            6    360EPP【6200】" & @CRLF & _
+		"            7    Symantec Endpoint Protection" & @CRLF & _
+		"            8    亚信安全网络版" & @CRLF & _
 		"	             --若不指定将退出程序--" & @CRLF & _
 		"    /s 指定弹出窗口触发卸载按钮后的处理模式." & @CRLF & _
 		"            1    隐藏窗口" & @CRLF & _

@@ -45,6 +45,10 @@ goto :begin
 	1.修复 -r 参数删除临时文件无效的问题
 	2.修复 卸载第三方软件时不在判断路径是否存在(暂定)
 	3.修复 卸载msi软件时等待卸载程序结束
+
+::* v2.0.3_20230412_beta
+	1.修复 2008 已经无法支持最新版本,通过指定 9.0 版本解决。
+	
 :: -------------待优化----------
 	1.xp在调用 getVersion agent 时报错
 	在此行代码中:for /f "delims=" %%x in ('reg query %%a /v ProductName 2^>nul ^| findstr /c:"ESET Management Agent"') do (
@@ -77,7 +81,7 @@ goto :begin
 	4.
 		set version_Agent=10
 		set version_Product_eea=10
-		set version_Product_efsw=9.0
+		set version_Product_efsw=10
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
 	5.本质上软件的安装是通过调用 msiexec 实现的,所以如果想自定义参数可以通过此参数实现: set "params_agent= password=eset1234." ,会指定一个密码,当然也可以用别的参数,比如指定安装时的语言，可以写入多个参数，以空格隔开即可
@@ -91,7 +95,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@set version=v2.0.2_20230308_beta
+@set version=v2.0.2_20230412_beta
 @echo off
 setlocal enabledelayedexpansion
 
@@ -120,7 +124,7 @@ rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
 set version_Agent=10.0
 set version_Product_eea=10.0
-set version_Product_efsw=9.0
+set version_Product_efsw=10.0
 rem -------------------
 
 rem 如果路径为UNC或可访问路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
@@ -182,9 +186,9 @@ if %absStatus%==False (
 	set path_server_old_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_chs_v6.5.msi
 	set path_server_old_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_chs_v6.5.msi
 
-	rem Server2008系统专用杀毒软件,需低于v10建议使用 v9.1
-	set path_server_nt61_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_v9.1.msi
-	set path_server_nt61_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_v9.1.msi
+	rem Server2008系统专用杀毒软件,需低于v10建议使用 v9.0
+	set path_server_nt61_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_v9.0.msi
+	set path_server_nt61_x64=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt64_v9.0.msi
 
 	rem 建议使用最新版本
 	set path_server_late_x86=http://files.yjyn.top:6080/Company/YCH/EEAI/ESET/CLIENT/Server/efsw_nt32_later.msi
