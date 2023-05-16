@@ -11,25 +11,32 @@ goto :begin
 	3.新增 新增了支持功能,方便排查问题
 	4.修复 某些情况下使用js下载失败,但是未能切换到powershell下载的问题。
 
+::* v2.1.1_20230515_beta
+	1.新增 现在可以根据不通的客户端ip地址自动选择不同的下载连接了,用于多服务器负载的场景
+	2.修复 卸载是提示未安装实际已安装的问题
 :begin
 
 cls
-@set version=v2.0.1_20230310_beta
+@set version=v2.1.1_20230515_beta
 @echo off
 title 360Inst tool.
 setlocal enabledelayedexpansion
 
 ::-----------user var-----------
 
-rem 设置360只能安装包下载地址
-set sdUrl=http://yjyn.top:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
+rem 设置360智能安装包下载地址,以冒号分隔字段, 第一个字段为匹配的ip内容,多个ip用空格分隔,第二个字段为下载连接;如果无论本地ip是什么都用这个连接则第一个字段写 "." 一个点即可,点表示匹配所有内容
+rem 如 192.168.1.和192.168.2. 开头的ip,使用sdUrl_1 变量的链接则: sdUrl_1=192.168.1. 192.168.2.:http://yjyn.top:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
+rem 尽量填写更多的内容,匹配更加精准.最多可以写20个, sdUrl_1 - sdUrl_20
+set sdUrl_1=.:http://demo.yjyn.top:8081/online/Ent_360EPP1383860355[demo.yjyn.top-8084]-W.exe
+set sdUrl_2=192.168.20.:http://192.168.20.1/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
+set sdUrl_3=192.168.330.:http://192.168.30.1:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
+set sdUrl_4=10.10.:http://10.10.1.1:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
 
 rem 开启此参数，命令行指定参数和gui选择将会失效;
 rem 相当于强制使用命令行参数；
 rem 如果不需要保持为空即可
 rem 使用方法 ： SET DEFAULT=-o --agent -l --remove -, 与正常的cmd参数保持一致
-SET DEFAULT_ARGS=
-
+SET DEFAULT_ARGS=-i -p -s -u
 ::-----------user var-----------
 
 rem ----------- init -----------
@@ -76,10 +83,6 @@ set registryValue="UninstallString"
 rem 下载文件阈值,小于多少判定为下载失败,  单位kb
 set errorFileSize=4
 
-for /f "delims=/ tokens=4" %%a in ("%sdUrl%") do (
-	echo %%a|findstr "^Ent_360EPP[0-9]*\[.*\]-W.exe" >nul
-	if !errorlevel! equ 0 set name_360=%%a
-)
 rem ----------- init -----------
 
 rem 关闭日志打印
@@ -156,21 +159,27 @@ if "#%argsUndoProduct%"=="#True" (
 )
 
 rem 安装Product
-if "#%argsProduct%"=="#True" (
 
+if "#%argsProduct%"=="#True" (
+	call :getUrl "!ipList!"
+	set sdUrl=!returnValue!
+	for /f "delims=/ tokens=4" %%a in ("!sdUrl!") do (
+		echo %%a|findstr "^Ent_360EPP[0-9]*\[.*\]-W.exe" >nul
+		if !errorlevel! equ 0 set name_360=%%a
+	)
 	call :writeLog INFO installProduct "开始处理安全产品安装" True True
 	if "#!uacStatus!"=="#True" (
 		if "#%regStatus%+%processStatus%"=="#True+True" (
 			call :writeLog INFO installProduct "安全产品版本 [%initProductName%] 已安装,无需再次安装" True True
 			set exitCode=0
 		) else (
-			if "%name_360%"=="" (
+			if "!name_360!"=="" (
 				call :writeLog INFO installProduct "下载链接错误无法正确解析: [%initProductName%] 中止安装" True True
 			) else (
-				call :writeLog INFO downloadProduct "开始下载安全产品: [%sdUrl%]" True True
-				call :downFile "%~f0" "%sdUrl%" "%path_Temp%\%name_360%"
+				call :writeLog INFO downloadProduct "开始下载安全产品: [!sdUrl!]" True True
+				call :downFile "%~f0" "!sdUrl!" "%path_Temp%\!name_360!"
 				call :writeLog INFO downloadProduct "Product.msi 下载状态是: [!returnValue!]" True True 
-				set path_product=%path_Temp%\%name_360%
+				set path_product=%path_Temp%\!name_360!
 			)
 		)
 		if not exist "!path_product!" (
@@ -422,6 +431,36 @@ if "#"=="#!uacStatus!" (
 
 goto :eof
 
+rem 匹配ip格式;传入参数: %1 = ip; 例: call :matchIp 10.1.1.5; 返回值: returnValue=True | False
+:matchIp
+set flag=False
+if not "%~1"=="" (
+	echo "%~1" | findstr "^[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*$">nul&&echo flag=True
+)
+set returnValue=%flag%
+set flag=
+goto :eof
+
+rem 根据不通ip获取杀毒下载连接;传入参数: %1 = ipList; 例: call :getUrl 10.1.1.5,10.1.1.6; 返回值: returnValue=下载连接
+:getUrl
+set flag=False
+set returnValue=
+for /l %%a in (1 1 20) do (
+	if not "!sdUrl_%%a!"=="" (
+		for /f "delims=: tokens=1*" %%x in ("!sdUrl_%%a!") do (
+			echo "%~1"|findstr "%%x" >nul && set flag=True
+			if "!flag!"=="True" (
+				set returnValue=%%y
+				goto :eof
+			)
+		)
+	)
+)
+if "!flag!"=="False" (
+	for /f "delims=: tokens=1*" %%x in ("!sdUrl_1!") do set returnValue=%%y
+)
+goto :eof
+
 rem 卸载第三方杀毒软件
 :avUninst
 for %%a in (%avList%) do (
@@ -603,7 +642,7 @@ set instStatus=3
 :checkInstStatusLoop
 set instProcessStatus=False
 call :getProductInfo
-tasklist /FO CSV /FI "IMAGENAME eq %name_360%" 2>nul|findstr /c:"%name_360%" >nul&& set instProcessStatus=True
+tasklist /FO CSV /FI "IMAGENAME eq !name_360!" 2>nul|findstr /c:"!name_360!" >nul&& set instProcessStatus=True
 if "%instProcessStatus%"=="True" (
 	if "#%regStatus%+%processStatus%"=="#True+True" (
 		set instStatus=0
@@ -662,7 +701,7 @@ goto :eof
 
 rem 当满足一定条件时,调用获取系统信息函数以提高运行效率.
 :getSysInfo
-set tmpArgsList_getSysVer=argsProduct argsSysStatus DEBUG
+set tmpArgsList_getSysVer=argsProduct argsSysStatus DEBUG 
 for %%a in (%tmpArgsList_getSysVer%) do (
 	if "#!%%a!"=="#True" (
 		rem echo %%a: !%%a!
@@ -672,7 +711,7 @@ for %%a in (%tmpArgsList_getSysVer%) do (
 )
 :endGetSysVer
 
-set tmpArgsList_getSysArch=argsProduct argsSysStatus DEBUG
+set tmpArgsList_getSysArch=argsProduct argsSysStatus argsUndoProduct DEBUG
 for %%a in (%tmpArgsList_getSysArch%) do (
 	if "#!%%a!"=="#True" (
 		rem echo %%a: !%%a!
