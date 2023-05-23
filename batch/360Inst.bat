@@ -27,10 +27,9 @@ setlocal enabledelayedexpansion
 rem 设置360智能安装包下载地址,以冒号分隔字段, 第一个字段为匹配的ip内容,多个ip用空格分隔,第二个字段为下载连接;如果无论本地ip是什么都用这个连接则第一个字段写 "." 一个点即可,点表示匹配所有内容
 rem 如 192.168.1.和192.168.2. 开头的ip,使用sdUrl_1 变量的链接则: sdUrl_1=192.168.1. 192.168.2.:http://yjyn.top:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
 rem 尽量填写更多的内容,匹配更加精准.最多可以写20个, sdUrl_1 - sdUrl_20
-set sdUrl_1=.:http://demo.yjyn.top:8081/online/Ent_360EPP1383860355[demo.yjyn.top-8084]-W.exe
-set sdUrl_2=192.168.20.:http://192.168.20.1/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
-set sdUrl_3=192.168.330.:http://192.168.30.1:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
-set sdUrl_4=10.10.:http://10.10.1.1:8081/online/Ent_360EPP1383860355[360epp.yjyn.top-8084]-W.exe
+set sdUrl_1=10.152. 10.153. 10.154. 172.22. 172.23. 172.24.:http://10.152.9.185:8081/online/Ent_360EPP689218535[10.152.9.185-8080]-W.exe
+set sdUrl_2=10.155. 10.156. 10.157. 172.25. 172.26. 172.27.:http://10.152.9.220:8081/online/Ent_360EPP689218535[10.152.9.220-8080]-W.exe
+set sdUrl_3=10.158. 10.159. 172.28. 172.29.:http://10.152.10.97:8081/online/Ent_360EPP689218535[10.152.10.97-8080]-W.exe
 
 rem 开启此参数，命令行指定参数和gui选择将会失效;
 rem 相当于强制使用命令行参数；
