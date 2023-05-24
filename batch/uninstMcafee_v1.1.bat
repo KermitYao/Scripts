@@ -8,7 +8,8 @@ for /f "delims=" %%a in ('wmic product get') do (
 	for /f "delims={} tokens=2*" %%x in ('echo "%%~a"^| findstr /c:"McAfee Endpoint Security Web ¿ØÖÆ"') do set avCode=%%x&set mcafee_4=%%x
 	for /f "delims={} tokens=2*" %%x in ('echo "%%~a"^| findstr /c:"McAfee Data Exchange Layer for MA"') do set avCode=%%x&set mcafee_5=%%x
 	for /f "delims={} tokens=2*" %%x in ('echo "%%~a"^| findstr /c:"McAfee Endpoint Security Æ½Ì¨"') do set avCode=%%x&set mcafee_6=%%x
-	for /f "delims={} tokens=2*" %%x in ('echo "%%~a"^| findstr /c:"McAfee Agent"') do set avCode=%%x&set mcafee_7=%%x
+	for /f "delims={} tokens=2*" %%x in ('echo "%%~a"^| findstr /c:"McAfee Active Response"') do set avCode=%%x&set mcafee_7=%%x
+	for /f "delims={} tokens=2*" %%x in ('echo "%%~a"^| findstr /c:"McAfee Agent"') do set avCode=%%x&set mcafee_8=%%x
 )
 
 for /l %%a in (1 1 9) do (
@@ -18,6 +19,19 @@ for /l %%a in (1 1 9) do (
 	)
 )
 
+call :avUninstMcAfee
 
 echo end...
+pause
 exit /b 0
+
+:avUninstMcAfee
+set pathList="C:\Program Files (x86)\McAfee\Agent\x86\FrmInst.exe" "C:\Program Files\McAfee\Agent\x86\FrmInst.exe" "C:\Program Files (x86)\McAfee\Common Framework\FrmInst.exe" "C:\Program Files\McAfee\Common Framework\FrmInst.exe"
+
+for %%a in (%pathList%) do (
+	if exist %%a (
+		echo %%a found
+		start /min /b %%~fsa /Forceuninstall
+	)
+)
+goto :eof
