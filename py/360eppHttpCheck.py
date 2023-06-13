@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 import smtplib
 import os,sys,time
+import socket
 #格式化时间
 def formatTime(times,type=1):
     if times != None:
@@ -87,12 +88,14 @@ def urlTest(url):
         return False
 
 def main():
+    localhostname=socket.gethostname()
     for url in urlList:
         if urlTest(url):
             logWrite('INFO', sys._getframe().f_lineno, '服务器:%s 运行正常' % url)
         else:
             logWrite('WARNING', sys._getframe().f_lineno, '服务器:%s 运行异常' % url)
-            if sendMail('714580117@qq.com', '1jfbyhvwwtaxrbefj', 'kermit.yao@qq.com', 'smtp.qq.com',url+' 无法访问,请尽快处理'):
+            msg = url+' 无法访问,请尽快处理' + '\nname:' + localhostname + '\n时间: ' + formatTime(time.time()) + '\nIP: ' + socket.gethostbyname(localhostname)
+            if sendMail('714580117@qq.com', 'jfbyhvwwtaxrbefj', 'kermit.yao@qq.com', 'smtp.qq.com', msg):
                 logWrite('INFO', sys._getframe().f_lineno, '邮件发送正常')
             else:
                 logWrite('WARNING', sys._getframe().f_lineno, '邮件发送异常')
@@ -100,5 +103,5 @@ def main():
 
 if __name__ == '__main__':
     urlList = ["http://10.152.9.185:8081", "http://10.152.9.220:8081", "http://10.152.10.97:8081"]
-    ccList = ["170374690@qq.com"]
+    ccList = ["714580117@qq.com"]
     main()
