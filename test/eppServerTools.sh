@@ -8,6 +8,9 @@
 ::* v1.0.1_20230507_beta
     1.初始脚本代码完成
 
+::* v1.1.0_20230718_beta
+    2.完善整体框架,第一个完整版本完成.
+
 ::*********************************************************
 
 
@@ -18,98 +21,39 @@
 	此脚本用于简化360EPP控制台的安装升级以及维护操作
 
 功能:
-	1.自动下载安装和升级文件
-	2.自动升级一个版本，到最新，升级到指定版本
-	3.自动备份还原数据库
-    4.自动修改管理员密码
-    5.自动修改计算机ip地址
-    6.进入常用容器内部
-    7.清理安装环境，用于重新安装
-	8.读取系统状态用于判断问题
-	9.可以根据需求自定义命令行参数，达到脚本自动运行安装的目的,(通过 DEFAULT_ARGS 参数实现)
-	10.默认不加参数打开脚本会出现一个选择界面（此界面的操作会有一定的交互能力）
-	11.支持命令行参数,以便远程批量推送时静默安装
-    12.支持代理下载
+	1.自动下载升级文件
+	2.自动升级一个版本、升级到最新、升级到指定版本
+	3.自动备份数据库
+    4.自动还原数据库
+    5.清理安装环境
+    6.自动修改计算机ip地址
+    7.修改管理管理员密码
+    8.主机加固
+    9.获取最新版本安装包
+	10.进入mysql
+	11.可以根据需求自定义命令行参数，达到脚本自动运行安装的目的,(通过 DEFAULT_ARGS 参数实现)
+	12.默认不加参数打开脚本会出现一个选择界面（此界面的操作会有一定的交互能力）
+	13.支持命令行参数,以便远程批量推送时静默安装
+    14.支持代理下载
+
 使用方法：
-	1.需要提前预设每个版本文件的下载地址或者本地的文件路径(可以使用相对路径,这样可以放到u盘里安装)
-		具体是通过下载安装，或是本地文件安装，可以通过一个参数控制 absStatus=True 
-	2.可以使用参数 -h | -help 来查看支持的参数
-	3.如果需要实现自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装agent、杀毒产品,并且会显示出安装的状态,然后停留等待
-	4.脚本的运行需要root 权限
-
-
-
----
-
-docker exec -i cactus-web mysqldump --single-transaction ${ignore_tables} -h${dbHost} -ucactus -p${dbpwd} cactus >cactus_bak_${bak_time}.sql
-
-docker exec -i cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbpwd}  cactus < $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-
-
-cat /data/docker/cactus-web/system/safe-cactus/application/config/production/conf/db.json
-
-
-$(echo $(cat /data/docker/cactus-web/system/safe-cactus/application/config/production/conf/db.json) | sed "s# ##g"  | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
-
-
-docker exec -i cactus-web mysql --default-character-set=utf8 -hmysql -ucactus -pfca577c33ad6da63  cactus < /data/docker/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-
-
-docker exec -i cactus-web mysql -hmysql -ucactus -pfca577c33ad6da63  cactus < /data/docker/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-
-
-docker image rm  $(docker images|awk  '{printf " %s",$3}')  #清理docker
-
-通过检测网页自动下载升级版本
-
-
-
-
-1.自动下载安装包 并获取 code码
-
-2.自动下载升级包 & 自动升级 & 自动获取code 码
-
-3.一些常用的状态检查获取
-
-4.自动备份数据库, 自动还原数据库。
-
-5.自动获取版本
-
-6.自动进入数据库命令行
-
-7.自动修改计算机ip地址
-
-8.自动修改管理员密码
-
-9.自动清理环境，完全卸载epp控制台
-
-
-
-
-
----
-
+	1.可以使用参数 -h | -help 来查看支持的参数
+	2.脚本的运行需要root 权限
 
 NOTES
 
-scriptVersion=1.0.1
+scriptVersion=v1.1.0_20230718_beta
 
 # ----------user var-----------------
-
-#开启此参数，命令行指定参数和gui选择将会失效;
-#相当于强制使用命令行参数；
-#如果不需要保持为空即可
-#使用方法 ： DEFAULT="-o --agent -l --remove" , 与正常的cmd参数保持一致
-DEFAULT_ARGS=""
 
 #日志等级 DEBUG|INFO|WARNING|ERROR
 logLevel="DEBUG"
 
 #安装文件下载目录
-instUrlPath=https://yjyn.top:1443/Company/YCH/360/360EPP/360EPP_install/
+instUrlPath=https://yjyn.top:1443/Company/YCH/360/360EPP/360EPP_install
 
 #升级文件下载目录
-updateUrlPath=https://yjyn.top:1443/Company/YCH/360/360EPP/360EPP_update/
+updateUrlPath=https://yjyn.top:1443/Company/YCH/360/360EPP/360EPP_update
 
 codeInfoName="code.txt"
 
@@ -119,34 +63,19 @@ codeInfoName="code.txt"
 
 # ----------sys var----------------
 #临时文件存放目录
-tempPath=/tmp/eppServerTools.sh
+tempPath=/tmp/360eppTools
 test -d ${tempPath}||mkdir -p ${tempPath}
 scriptDir="$(cd "$(dirname "$0")";pwd)"
 
 testLine="---------------------------------"
-srcArgs=$@
-
-if [ "${DEFAULT_ARGS}" = "" ]
-then
-    args=$srcArgs
-else
-    args=$DEFAULT_ARGS
-fi
+srcArgs="$@"
 
 logPath="${tempPath}/$(basename $0).log"
-
 composeFile="/home/s/lcsd/docker-compose.yml"
-instDir="/data/"
-
-
-argsList="argHelp argStatusInfo argLog argClean argProxy argProxyValue argDown  argInstDownValue argUpgrade argUpgradeDownValue argBackupData argBackupDataValue argRestoreData argRestoreDataValue argModifyIp argModifyIpValue argSetpw argSetpwValue"
-
-#argInstPkgDown=late argInst=list argInst=versionNumber
-#argUpdatePkgDown=late argInst=list argInst=versionNumber
-#argAutoUpdate=late argInst=list argInst=versionNumber
-#argBackupDataValue=epp_server_mysql_backup_time.sql argBackupDataValue=自定义
-#argRestoreDataValue=自定义
-#安装最新版本杀毒的系统列表, 从 /etc/os-release 取 NAME 和 VERSION_ID 的值成对填入下面,以逗号分隔
+instDir="/data"
+baseDir=$instDir/docker
+productName="360终端安全管理系统"
+argsList="argHelp argStatusInfo argLog argClean argProxy argProxyValue argDown  argDownValue argUpgrade argUpgradeValue argBackupData argBackupDataValue argRestoreData argRestoreDataValue argModifyIp argModifyIpValue argSetpw argSetpwValue  argForce argExec argExecValue argGetInstPkg argSetSafe argVersion"
 
 userID=$(id -u)
 
@@ -155,51 +84,16 @@ userID=$(id -u)
 
 # ----------function-----------------
 
-getGuiHelp() {
-guiStatus=True
-cat <<EOF
- *****************************
- *
- *  ESET 终端安全安装脚本
- *
- * d. 下载最新安装包
- * u. 自动升级到最新版本
- * b. 备份数据库到当前目录
- * c. 清理环境(用于重新安装EPP)
- * s. 检查状态
- * h. 显示命令行帮助
- *       kermit.yao@qq.com
- *****************************
-EOF
-
-	tempFlag=false
-	while read -p '你的选择? < d|u|b|c|s|h >: ' guiArgs
-	do
-		echo "$guiArgs" | grep -E '^(d|u|b|c|s|h)$' >/dev/null 2>&1 && tempFlag=true
-		if [ "x$tempFlag" = "xfalse" ]
-		then
-            printLog $LINENO WARNING getGuiArgs "Invalid input:[${guiArgs}]"
-		else
-			break
-		fi
-	done
-    if [ ! "$guiArgs" = "" ]
-    then
-        args=-$guiArgs
-    fi
-    return 0
-}
-
 
 getCuiHelp() {
 cat <<EOF
 
-    ESET server security install script for linux
+    360EPP tools script for linux
 
 Usage: $0 [options]
 
   -h,  --help                   打印帮助信息
-  -d,  --download [l|ver]       下载安装或升级文件,可以指定l来获取版本列表,指定一个版本进行下载
+  -d,  --download [l|ver]       下载升级文件,可以指定l来获取版本列表,指定一个版本进行下载
   -u,  --upgrade [u|a|ver]      升级版本,u升级一个版本,a自动升级到最新,ver可以指定一个版本,将自动升级到对应的版本
   -b,  --backup [file]          备份数据库,如果未指定路径,将在当前目录下生成
   -r,  --restore file           还原数据库,通过指定一个文件路径来还原数据库
@@ -208,191 +102,147 @@ Usage: $0 [options]
   -s,  --status                 打印状态信息
   -l,  --log                    关闭日志显示
   -p,  --proxy ip:port          指定一个代理用于网络中转
-  --setpw [password]            强制修改管理员密码
-  -g,  --gui                    脚本不会自动推出
+  --setpw                       强制修改管理员密码
+  --setSafe                     主机加固
+  --getInstPkg                  获取最新版本安装包
+  -e,  --exec [sql command]     执行mysql命令或者进入mysql
+  -g,  --gui                    脚本不会自动退出
+  -f,  --force                  某些情况下不会询问,强制执行.
+  -v,  --version                打印当前版本
 
-		Example: $0 -d l -b /tmp/epp_20230604.sql -s -gui -p "192.168.6.99:3128"
+		Example: $0 -d l -b /tmp/epp_20230604.sql -s -gui -p "192.168.6.99:3128" -e "show databases;"
 
-			Code by kermit.yao @ centos 7.6, 2023-06-4, kermit.yao@qq.com
+			Code by kermit.yao @ centos 7.6, 2023-07-18, kermit.yao@qq.com
 
 EOF
     return 0
 }
 
-
-
-#检查参数是否正确, $1 = 检查类型,f = file, s = string; $2 = 参数; $3 = 参数的值; $4 = 匹配字符;$5 = 默认值
-checkArgs() {
-    echo $1 - $2 - $3 - $4 - $5
-    #f = files, s = string
-    if [ -z "$5" ]
-    then
-        if [  -z "$3" ]
-        then
-            echo 参数 [$2] 必须指定一个参数.
-            return 1
-        fi
-
-        echo "$3" | grep "^-">/dev/null&& echo 参数 [$2] 必须指定一个正确的参数.&&return 1
-
-	
-        if [ "$1" = "f" ]
-        then
-            if [ ! -e "$3" ]
-            then
-                echo 参数 [$2] 的值 [$3] 出现错误,路径不存在.
-                return 1
-            fi
-        else
-	    tmp=$(echo "$4"|grep "$3">/dev/null&&echo True)
-            if [ ! "${tmp}" == "True" ]
-            then
-                echo 参数 [$2] 的值 [$3] 出现错误,无法匹配有效参数.
-                return 1
-            fi
- 	    tmp=
-         fi
-        return 0
-    else
-        if [  -z "$3" ]
-        then
-            return 98
-        fi
-
-        echo "$3" | grep "^-">/dev/null&&return 98
-
-	
-        if [ "$1" = "f" ]
-        then
-            if [ ! -e "$3" ]
-            then
-                echo 参数 [$2] 的值 [$3] 出现错误,路径不存在.
-                return 1
-            fi
-        else
-	    tmp=$(echo "$4"|grep "$3">/dev/null&&echo True)
-            if [ ! "${tmp}" == "True" ]
-            then
-                echo 参数 [$2] 的值 [$3] 出现错误,无法匹配有效参数.
-                return 1
-            fi
- 	    tmp=
-         fi
-    fi
-    return 0
-}
-
-
-#解析参数,传入参数: $1 = args
+#解析参数,传入参数: $1 = "$@"
 getArgs() {
     argsStatus=1
     while test $# != 0
     do
         case "$1" in
-            -h|--help) argsHelp=1;;
+            -h|--help) argHelp=1;;
             -d|--download) 
                 argDown=1
-		argInstDownValueDefault=l
-                shift
-                checkArgs s -d "$1" "l" "$argInstDownValueDefault"
-                if [ $? = 0 ]
+		        argDownValueDefault=l
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
                 then
-                    argInstDownValue=$1
-                fi
-
-                if [ $? = 98 ]
+                    argDownValue=$argDownValueDefault
+                elif [ -z "$2" ]
                 then
-                    argInstDownValue=$argInstDownValueDefault
-                    shift $(($#+2))
+                    argDownValue=$argDownValueDefault
+                else
+                    argDownValue=$2
                 fi
                 ;;
+
             -u|--upgrade)
                 argUpgrade=1
-                shift
-                argUpgradeDownValueDefault=l
-                checkArgs s -u "$1" "$1" "argUpgradeDownValueDefault"
-                if [ $? = 0 ]
+                argUpgradeValueDefault=u
+                tmpVar=
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
                 then
-                    argUpgradeDownValue=$1
-                fi
-                
-                if [ $? = 98 ]
+                    argUpgradeValue=$argUpgradeValueDefault
+                elif [ -z "$2" ]
                 then
-                    argUpgradeDownValueDefault=$argUpgradeDownValueDefault
-                    shift $(($#+2))
+                    argUpgradeValue=$argUpgradeValueDefault
+                else
+                    argUpgradeValue=$2
                 fi
                 ;;
 
             -b|--backup)
                 argBackupData=1
-                shift
                 argBackupDataValueDefault=
-                checkArgs f -b "$(dirname $1)" "$1" "$argBackupDataValueDefault"
-                if [ $? = 0 ]
-                then
-                    argBackupDataValue=$1
-                fi
-
-                if [ $? = 98 ]
+                tmpVar=
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
                 then
                     argBackupDataValue=$argBackupDataValueDefault
-                    shift $(($#+2))
+                elif [ -z "$2" ]
+                then
+                    argBackupDataValue=$argBackupDataValueDefault
+                else
+                    argBackupDataValue=$2
                 fi
-		;;
+		        ;;
             -r|--restore)
                 argRestoreData=1
-                shift
-                checkArgs f -b "$1"
-                if [ $? = 0 ]
+                tmpVar=
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
                 then
-                    argRestoreDataValue=$1
+                    argRestoreDataValue=
+                elif [ -z "$2" ]
+                then
+                    argRestoreDataValue=
+                else
+                    argRestoreDataValue=$2
                 fi
                 ;;
             -m|--modify)
                 argModifyIp=1
-                shift
-                checkArgs s -m "$1" "$1"
-                if [ $? = 0 ]
-                then
-                    argModifyIpValue=$1
-                fi
+                argModifyIpValue=$1
             	;;
             -c|--clean) argClean=1;;
             -s|--status) argStatusInfo=1;;
             -l|--log) argLog=1;;
             -p|--proxy)
                 argProxy=1
-                shift
                 argProxyValueDefault=
-                checkArgs s -p "$1" "$1" "$argProxyValueDefault"
-                if [ $? = 0 ]
+                argProxyValue=$argProxyValueDefault
+                tmpVar=
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
                 then
-                    argProxyValue=$1
-                fi
-                
-                if [ $? = 98 ]
+                    argProxyValue=
+                elif [ -z "$2" ]
                 then
-                   argProxyValue=$argProxyValueDefault
-                   shift $(($#+2))
+                    argProxyValue=
+                else
+                    argProxyValue=$2
                 fi
                 ;;
             --setpw)
                 argSetpw=1
-                shift
                 argSetpwValueDefault="360Epp1234.default"
-                checkArgs s --setpw "$1" "$1" "$argSetpwValueDefault"
-		res=$?
-                if [ $res = 0 ]
+                tmpVar=
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
                 then
-                    argSetpwValue=$1
-                fi
-
-                if [ $res = 98 ]
+                    argSetpwValue=$argSetpwValueDefault
+                elif [ -z "$2" ]
                 then
-                   argSetpwValue="${argSetpwValueDefault}"
-                   shift $(($#+2))
+                    argSetpwValue=$argSetpwValueDefault
+                else
+                    argSetpwValue=$2
                 fi
                 ;;
+            --setSafe) argSetSafe=1;;
+            --getInstPkg) argGetInstPkg=1;;
+            -e|--exec) 
+                argExec=1
+                argExecValueDefault=
+                tmpVar=
+                tmpVar=$(echo "$2" | grep "^-")
+                if [ -n "$tmpVar" ]
+                then
+                   argExecValue=$argSetpwValueDefault
+                elif [ -z "$2" ]
+                then
+                    argExecValue=$argSetpwValueDefault
+                else
+                   argExecValue=$2
+                fi
+                
+                ;;
+            -f|--force) argForce=1;;
+            -v|--version) argVersion=1;;
            *) argsStatus=0
         esac
         shift
@@ -419,13 +269,37 @@ getArgs() {
 
 #开启http代理
 enableProxy() {
-    if [ -n ${argProxyValue} ]
+    if [ -n "${argProxyValue}" ]
     then
         printLog $LINENO INFO enableProxy "开启代理."
         export http_proxy=${argProxyValue}
         export https_proxy=${argProxyValue}
     else
         printLog $LINENO ERROR enableProxy "并未设置代理服务器信息."
+    fi
+}
+
+#获取产品版本;传入参数: $1 = 包类型 $2 = 软件名称
+getProductVersion() {
+
+    if [ "$2" = "efs" ]
+    then
+        if [ "$1" = "deb" ]
+        then
+            currentProductVersion="$(dpkg-query --showformat='${Version}' --show "$2" 2>/dev/null)"
+            echo ${currentProductVersion:0:1} | grep '[0-9]' >/dev/null || currentProductVersion="0.0001"
+        elif [ "$1" = "rpm" ]
+        then
+            currentProductVersion="$(rpm --queryformat "%{VERSION}" -q "$2" 2>/dev/null)"
+            echo ${currentProductVersion:0:1} | grep '[0-9]' >/dev/null || currentProductVersion="0.0001"
+        else
+            return 1
+        fi
+    else
+        if [ -f  "/opt/eset/esets/sbin/esets_daemon" ]
+        then
+            currentProductVersion="4.5"
+        fi
     fi
 }
 
@@ -467,55 +341,712 @@ getPackageType() {
     return 99
 }
 
-#获取产品版本;传入参数: $1 = 包类型 $2 = 软件名称
-getProductVersion() {
-
-    if [ "$2" = "efs" ]
+#获取code信息
+function getCodeInfo() {
+    #清空变量
+    ver=
+    code=
+    sn=
+    md5=
+    name=
+    verAllInfo=
+    if [[ -f "$1" && ! -z "$2" ]]
     then
-        if [ "$1" = "deb" ]
+        ver=$(cat $1 | sed 's/ //g' |sed -n '/\['$2'.*\]/,/\[.*\]/p'|awk -F':' '/ver/ {print $2}')
+        code=$(cat $1 | sed 's/ //g' |sed -n '/\['$2'.*\]/,/\[.*\]/p'|awk -F':' '/code/ {print $2}')
+        sn=$(cat $1 | sed 's/ //g' |sed -n '/\['$2'.*\]/,/\[.*\]/p'|awk -F':' '/sn/ {print $2}')
+        md5=$(cat $1 | sed 's/ //g' |sed -n '/\['$2'.*\]/,/\[.*\]/p'|awk -F':' '/md5/ {print $2}')
+        name=$(cat $1 | sed 's/ //g' |sed -n '/\['$2'.*\]/,/\[.*\]/p'|awk -F':' '/name/ {print $2}')
+        verAllInfo=$ver:$code:$sn:$md5:$name
+        return 0
+    else
+        return 1
+    fi
+}
+
+function getCodeArry() {
+
+    #下载版本信息
+    fileDownload "$1" "$2" >/dev/null 2>&1
+
+    if [ ! $? -eq 0 ]
+    then
+        echo 版本信息下载失败.
+        return 1
+    fi
+
+    instInfoArry=
+    tmpNum=0
+    if [ ! -f "$2" ]
+    then
+        return 0
+    fi
+
+    for i in $(cat "$2" | grep -E '^\[.*\]' | sed  's/\[//g;s/\]//g'|awk -F'_' '{print $1}')
+    do  
+        getCodeInfo "$2" $i
+        if [ $?!=1 ]
         then
-            currentProductVersion="$(dpkg-query --showformat='${Version}' --show "$2" 2>/dev/null)"
-            echo ${currentProductVersion:0:1} | grep '[0-9]' >/dev/null || currentProductVersion="0.0001"
-        elif [ "$1" = "rpm" ]
+            if [ -n "${verAllInfo}" ]
+            then
+                instInfoArry[$tmpNum]=$verAllInfo
+                tmpNum=$[$tmpNum + 1]
+            fi
+        fi
+    done
+    if [ -n "${instInfoArry}" ]
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
+setSafe() {
+
+    #禁用root远程登录
+    printf "禁用root远程登录 "
+    if [ -f '/etc/ssh/sshd_config' ]
+    then
+        cat /etc/ssh/sshd_config|grep '^PermitRootLogin.*no'  >/dev/null
+        if [ $? -ne 0 ]
         then
-            currentProductVersion="$(rpm --queryformat "%{VERSION}" -q "$2" 2>/dev/null)"
-            echo ${currentProductVersion:0:1} | grep '[0-9]' >/dev/null || currentProductVersion="0.0001"
+            sed -i 's/.*PermitRootLogin.*/PermitRootLogin no/g' /etc/ssh/sshd_config
+            if [ $? -ne 0 ]
+            then
+                echo 失败,配置过程失败.
+            else
+                echo 成功.
+            fi
         else
-            return 1
+            echo 成功.
         fi
     else
-        if [ -f  "/opt/eset/esets/sbin/esets_daemon" ]
-        then
-            currentProductVersion="4.5"
-        fi
+        echo 失败,配置文件未找到.
     fi
+
+    #关闭DNS反向解析
+    printf "关闭DNS反向解析 "
+    if [ -f '/etc/ssh/sshd_config' ]
+    then
+        cat /etc/ssh/sshd_config|grep '^UseDNS.*no' >/dev/null
+        if [ $? -ne 0 ]
+        then
+            sed -i 's/.*UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
+            if [ $? -ne 0 ]
+            then
+                echo 失败,配置过程失败.
+            else
+                echo 成功.
+            fi
+        else
+            echo 成功.
+        fi
+    else
+        echo 失败,配置文件未找到.
+    fi
+
+    #开启密码过期时间
+    printf "开启密码过期时间 60 天 "
+    if [ -f '/etc/login.defs' ]
+    then
+        cat /etc/login.defs|grep '^PASS_MAX_DAYS.*60' >/dev/null
+        if [ $? -ne 0 ]
+        then
+            sed -i 's/.*PASS_MAX_DAYS.*/PASS_MAX_DAYS 60/g' /etc/login.defs
+            if [ $? -ne 0 ]
+            then
+                echo 失败,配置过程失败.
+            else
+                echo 成功.
+            fi
+        else
+            echo 成功.
+        fi
+    else
+        echo 失败,配置文件未找到.
+    fi
+
+    #开启密码长度 9 位
+    printf "开启密码长度 9 位 "
+    if [ -f '/etc/login.defs' ]
+    then
+        cat /etc/login.defs|grep '^PASS_MIN_LEN.*9' >/dev/null
+        if [ $? -ne 0 ]
+        then
+            sed -i 's/.*PASS_MIN_LEN.*/PASS_MIN_LEN  9/g' /etc/login.defs
+            if [ $? -ne 0 ]
+            then
+                echo 失败,配置过程失败.
+            else
+                echo 成功.
+            fi
+        else
+            echo 成功.
+        fi
+    else
+        echo 失败,配置文件未找到.
+    fi
+
+    #开启密码尝试次数  3 次
+    printf "开启密码尝试次数 3 次 "
+    if [ -f '/etc/pam.d/system-auth' ]
+    then
+        lineNum=$(cat /etc/pam.d/sshd |grep -n "^auth"|head -n1|awk -F: '{print $1}')
+        cat /etc/pam.d/system-auth|grep '^auth.*required.*pam_tally2.so.*' >/dev/null
+        if [ $? -ne 0 ]
+        then
+            sed -i "$lineNum i\auth    required    pam_tally2.so   onerr=fail deny=3 unlock_time=600 even_deny_root root_unlock_time=600" /etc/pam.d/sshd
+            if [ $? -ne 0 ]
+            then
+                echo 失败,配置过程失败.
+            else
+                echo 成功.
+            fi
+        else
+            echo 成功.
+        fi
+    else
+        echo 失败,配置文件未找到.
+    fi
+
+    #新建用户
+    cat /etc/passwd|grep "360epp" >/dev/null || useradd 360epp 
+    if [ $? -eq 0 ]
+    then
+        printf '修改密码为： 360Epp1234.'
+        echo "360Epp1234." |passwd --stdin 360epp >/dev/null
+        if [ $? -eq 0 ]
+        then
+            echo 成功.
+            #添加 sudo 权限
+            printf "添加 sudo 权限 "
+            if [ -f '/etc/sudoers' ]
+            then
+                cat /etc/sudoers|grep '^360epp.*ALL=(.*).*' >/dev/null
+                if [ $? -ne 0 ]
+                then
+                    echo '360epp   ALL=(ALL)   ALL' >>/etc/sudoers
+                    if [ $? -ne 0 ]
+                    then
+                        echo 失败,配置过程失败.
+                    else
+                        echo 成功.
+                    fi
+                else
+                    echo 成功.
+                fi
+            else
+                echo 失败,配置文件未找到.
+            fi
+        else
+            echo 密码修改失败
+        fi
+    else
+        echo 创建用户失败
+    fi
+
+}
+
+getSecureInfo() {
+    tmpNum=0
+    secuTmpPath="$tempPath/secuTmpUserList5q.txt"
+    lastb|tail -n 5000 >$secuTmpPath
+    secuUserList=$(cat $secuTmpPath|grep "-"|awk '{print $1}')
+    secuUserListNoRePeat=$(cat $secuTmpPath|grep "-"|awk '{print $1}'|sort -u)
+    for i in $secuUserListNoRePeat
+    do
+        loginUserArry[$tmpNum]="$i:$(echo $secuUserList|tr ' ' '\n'|grep -w "^$i"|wc -l)"
+        tmpNum=$[$tmpNum + 1]
+    done
+    tmpNum=0
+    for i in $(echo ${loginUserArry[*]}|tr ' ' '\n'|sort -t ':' -k 2nr -k 1r)
+    do
+        loginUserArry[$tmpNum]=$i
+        tmpNum=$[$tmpNum + 1]
+    done
+    #echo 数组长度: ${#loginUserArry[@]}
+    #echo 数组内容: ${loginUserArry[@]:0:10}
 }
 
 getInstStatus() {
     instStatus=True
-    command -v docker>/dev/null||instStatus=False
-    command -v docker-compose>/dev/null||instStatus=False
-    test -f /data/docker/cactus-web/system/version||instStatus=False
+    cdb=$baseDir/cactus-web/system/safe-cactus/application/config/production/conf/db.json
+    dbpwd=""
+    dbHost=""
+    server_ip=""
+    command -v docker >/dev/null||instStatus=False
+    command -v docker-compose >/dev/null||instStatus=False
+    test -f $baseDir/cactus-web/system/safe-cactus/version||instStatus=False
     filterContainerList="cactus-nginx lcsd-nginx-1 cactus-web mysql cactus-newtransserver"
+    if [ "$instStatus" == "False" ]
+    then
+        return 1
+    fi
     nowContainerList=$(docker inspect -f {{.Name}} $(docker ps|awk '{print $1}'|grep -v CONTAINER))
     for fc in $filterContainerList
     do
-        flag=1
+        instStatus=False
         for nc in $nowContainerList
         do
             if [ "/$fc" = "$nc" ]
             then
                 #echo match - $nc
-                flag=0
+                instStatus=True
             fi
         done
-        if [ "$flag" = "1" ]
+        if [ "$instStatus" = "False" ]
         then
             break
         fi
     done
-    
-    return $flag
+
+    if [ "$instStatus" == "True" ]
+    then
+        if [ -f $cdb ]
+        then
+            dbUser='cactus'
+            dbPwd=$(echo $(cat $baseDir/cactus-web/system/safe-cactus/application/config/production/conf/db.json) | sed "s# ##g" | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}'| grep -Po '"password":".*?"'| awk -F '"' '{print $4}')
+            dbHost=$(echo $(cat $cdb) | sed "s# ##g"  | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
+            serverIp=$(echo $(cat $cdb) | sed "s# ##g" | grep -Po '"local_server":".*?"' | awk -F '"' '{print $4}' )
+        fi
+    else
+        return 1
+    fi
+    if [[ "$serverIp" == "" && -f $base_dir/cascade-server/application-test.yml ]]
+    then
+        serverIp=$(cat $baseDir/cascade-server/application-test.yml | grep "current_ip" | sed "s# ##g" | awk -F ':' '{print $2}')
+    fi
+    if [ -f $baseDir/cactus-web/system/safe-cactus/version ]
+    then
+        nowVersion=$(grep 'sv=' $baseDir/cactus-web/system/safe-cactus/version  | sed "s#sv=##" | tr -cd "[0-9+].[0-9+].[0-9+].[0-9+]\-[0-9+].[0-9+].[0-9+].[0-9+]")
+    fi
+}
+
+getTmpVer() {
+    tmpVer=
+    tmpCode=
+    tmpSn=
+    tmpMd5=
+    tmpName=
+    if [ -n "$1" ]
+    then
+        # $1 = ver, $2 = code, $3 = sn, $4 = md5, $5 = name
+        #echo ${instInfoArry[-1]}|awk -F':' '{print $5}'
+        tmpVer=$(echo $1|awk -F':' '{print $1}')
+        tmpCode=$(echo $1|awk -F':' '{print $2}')
+        tmpSn=$(echo $1|awk -F':' '{print $3}')
+        tmpMd5=$(echo $1|awk -F':' '{print $4}')
+        tmpName=$(echo $1|awk -F':' '{print $5}')
+        return 0
+    else
+        return 1
+    fi
+}
+
+getVersionFull() {
+    echo ${1//./}
+
+}
+
+upgradeFileDown() {
+    if [ -z "$1" ]
+    then
+        printLog $LINENO ERROR upgradeFileDown "传入参数有误."
+    elif [ "$1" == "l" ]
+    then
+        getCodeArry "${updateUrlPath}/${codeInfoName}" "${tempPath}/update_${codeInfoName}"
+        if [ $? -eq 0 ]
+        then
+            echo $testLine
+            echo
+            for i in ${instInfoArry[@]}
+            do
+                getTmpVer $i
+                if [ $? -eq 0 ]
+                then
+                    echo     "$tmpVer:$tmpName:$tmpCode"
+                fi
+            done
+            echo
+            echo 下载升级文件使用: $0 -d 版本号
+            echo 版本号可以是完整的版本号如: $tmpVer, 或者版本的最后一部分也可以,如: $(echo $tmpVer|cut -d '.' -f 4)
+            echo $testLine
+            return 0
+        else
+            printLog $LINENO ERROR upgradeFileDown "获取升级文件列表失败."
+            return 1
+        fi
+    else
+        echo "$1"| grep -E ".*[0-9]+$" >/dev/null
+        if [ $? -eq 0 ]
+        then
+            getCodeArry "${updateUrlPath}/${codeInfoName}" "${tempPath}/update_${codeInfoName}"
+            if [ $? -eq 0 ]
+            then
+                tmpFlag=
+                for i in ${instInfoArry[@]}
+                do
+                    getTmpVer $i
+                    if [ $? -eq 0 ]
+                    then
+                        echo $tmpVer| grep -E ".*${1}$" >/dev/null
+                        if [ $? -eq 0 ]
+                        then
+                            tmpFlag=1
+                            echo $testLine
+                            echo
+                            echo  "    版本: $tmpVer"
+                            echo  "    code: $tmpCode"
+                            echo  "      sn: $tmpSn"
+                            echo  "     MD5: $tmpMd5"
+                            echo "下载路径: ${tempPath}/$tmpName"
+                            echo
+                            echo $testLine
+                            printLog $LINENO INFO upgradeFileDown "开始下载升级安装包..."
+                            fileDownload "${updateUrlPath}/$tmpName" "${tempPath}/$tmpName"
+                            if [ $? -eq 0 ]
+                            then
+                                printLog $LINENO INFO upgradeFileDown "检查文件完整性."
+                                localMd5=$(md5sum "${tempPath}/$tmpName" | cut -d ' ' -f 1)
+                                if [ "$tmpMd5" == "$localMd5" ]
+                                then
+                                    printLog $LINENO INFO upgradeFileDown "MD5对比一致,文件下载正常"
+                                else
+                                    printLog $LINENO INFO upgradeFileDown "MD5对比不一致,文件下载异常"
+                                    return 1
+                                fi
+                            else
+                                printLog $LINENO ERROR upgradeFileDown "下载升级包失败,请检查网络."
+                                return 1
+                            fi
+                        fi
+                    fi
+                done
+                if [ "$tmpFlag" != "1" ]
+                then
+                    printLog $LINENO ERROR upgradeFileDown "未找到指定的版本: [ $1 ],请使用以下命令获取版本列表: $0 -d l"
+                    return 1
+                fi
+            else
+                printLog $LINENO ERROR upgradeFileDown "获取版本列表失败"
+                return 1
+            fi
+        else
+            printLog $LINENO ERROR upgradeFileDown "版本输入有误,请检查: [ ${1} ]."
+            return 1
+        fi
+    fi
+}
+
+upgradeVersion() {
+    if [ "$1" == "u" ]
+    then
+        upgradeVersionNext
+        if [ $? -eq 0 ]
+        then
+            return 0
+        else
+            return 1
+        fi
+
+    elif [ "$1" == "a" ]
+    then
+        nowVersionFull=0
+        lateVersionFull=1
+        while true
+        do
+            upgradeVersionNext
+            if [ $? -eq 0 ]
+            then
+                if [ $nowVersionFull -ge $lateVersionFull ]
+                then
+                    printLog $LINENO INFO upgradeVersion "已经更新到最新版本."
+                    break
+                fi
+            else
+                printLog $LINENO ERROR upgradeVersion "版本更新出现错误,请联系相关人员."
+                return 1
+            fi
+        done
+        return 0
+
+    else
+        echo "$1"| grep -E ".*[0-9]+$" >/dev/null
+        if [ $? -eq 0 ]
+        then
+            getCodeArry "${updateUrlPath}/${codeInfoName}" "${tempPath}/update_${codeInfoName}"
+            if [ $? -eq 0 ]
+            then
+                tmpFlag=
+                for i in ${instInfoArry[@]}
+                do
+                    getTmpVer $i
+                    if [ $? -eq 0 ]
+                    then
+                        echo $tmpVer| grep -E ".*${1}$" >/dev/null
+                        if [ $? -eq 0 ]
+                        then
+                            tmpFlag=1
+                            userVersion=$tmpVer
+                            break
+                        fi
+                    fi
+                done
+                if [ "$tmpFlag" != "1" ]
+                then
+                    printLog $LINENO WARNING upgradeVersion "未找到指定的版本: $1,请使用以下命令获取版本列表: $0 -d l"
+                    return 1
+                fi
+            else
+                printLog $LINENO WARNING upgradeVersion "获取版本列表失败."
+                return 1
+            fi
+        else
+            printLog $LINENO WARNING upgradeVersion "输入的版本号错误"
+            return 1
+        fi
+
+        nowVersionFull=0
+        userVersionFull=${userVersion//./}
+        while true
+        do
+            upgradeVersionNext
+            if [ $? -eq 0 ]
+            then
+                if [ $nowVersionFull -ge $userVersionFull ]
+                then
+                    printLog $LINENO INFO upgradeVersion "已经更新到指定版本."
+                    break
+                fi
+            else
+                printLog $LINENO ERROR upgradeVersion "版本更新出现错误,请联系相关人员."
+                return 1
+            fi
+        done
+    fi
+    return 0
+}
+
+upgradeVersionNext() {
+    getInstStatus
+    nowVersionFull=${nowVersion//./}
+    getCodeArry "${updateUrlPath}/${codeInfoName}" "${tempPath}/update_${codeInfoName}"
+    if [ $? -eq 0 ]
+    then
+        getTmpVer ${instInfoArry[-1]}
+        if [ $? -eq 0 ]
+        then
+            lateVersionFull=${tmpVer//./}
+        fi
+        if [ $nowVersionFull -ge $lateVersionFull ]
+        then
+            printLog $LINENO INFO versionNext "已是最新版本,无需更新."
+            return 0
+        else
+            #寻找可升级的版本
+            for i in ${instInfoArry[@]}
+            do
+                tmpFlag=0
+                getTmpVer $i
+                nameVersion=$(echo ${tmpName}|sed 's/\.sh//g;s/updatepkg\.//g;s/\.//g')
+                startVersionFull=$(echo ${nameVersion}|cut -d '-' -f 1)
+                endVersionFull=$(echo ${nameVersion}|cut -d '-' -f 2)
+                if [ $nowVersionFull -ge $startVersionFull ] && [ $nowVersionFull -lt $endVersionFull ]
+                then
+                    tmpFlag=1
+                    endVersion=$(echo ${tmpName}|sed 's/\.sh//g;s/updatepkg\.//g'|cut -d '-' -f 2)
+                    break
+                fi
+            done
+            if [ "$tmpFlag" == "0" ]
+            then
+                printLog $LINENO WARNING versionNext "未能找到匹配的可升级版本,请联系相关人员."
+                return 1
+            else
+
+                if [ "$argForce" != "1" ]
+                then
+                    echo 
+                    echo "当前版本: ${nowVersion}, 升级后版本: $endVersion"
+                    echo
+                    printf '\33[5m \33[33m以上操作无法恢复,如果您不知道会造成什么后果,请立即退出!!!\033[0m\n'
+                    echo
+                    read -p '确定执行此操作? < yes/no >: ' input
+                    if [ "${input}" != "yes" ]
+                    then
+                        return 7
+                    fi
+                fi
+
+                echo -e "升级版本: ${nowVersion} > $endVersion, MD5:${tmpMd5}"
+                printLog $LINENO INFO versionNext "开始下载升级包..."
+                fileDownload "${updateUrlPath}/$tmpName" "${tempPath}/$tmpName"
+                if [ $? -eq 0 ]
+                then
+                    printLog $LINENO INFO versionNext "安装包下载完成."
+                    printLog $LINENO INFO versionNext "检查文件完整性."
+                    localMd5=$(md5sum "${tempPath}/$tmpName" | cut -d ' ' -f 1)
+                    if [ "$tmpMd5" == "$localMd5" ]
+                    then
+                        printLog $LINENO INFO versionNext "MD5对比一致,文件下载正常"
+                        printLog $LINENO INFO versionNext "开始升级版本..."
+                        echo ${tmpCode}|sh ${tempPath}/$tmpName | tee -a "${logPath}"
+                        getInstStatus
+                        nowVersionFull=${nowVersion//./}
+                        if [ "${nowVersionFull}" -eq "$endVersionFull" ]
+                        then
+                            return 0
+                        else
+                            return 1
+                        fi
+                    else
+                        printLog $LINENO ERROR versionNext "MD5对比不一致,文件下载异常"
+                        return 1
+                    fi
+                else
+                    printLog $LINENO ERROR versionNext "下载安装包失败,请检查网络."
+                    return 1
+                fi
+            fi
+        fi
+    else
+        echo 获取版本列表失败
+        return 1
+    fi
+}
+
+#清理EPP安装环境
+cleanEnv() {
+	command -v docker >/dev/null
+	if [ $? -eq 0 ]
+	then
+        printLog $LINENO INFO cleanEnv "清理 docker 容器"
+		containerList=$(docker container ls -aq)
+		if [ -n "$containerList" ]
+		then
+			docker container stop $containerList
+			docker container rm $containerList
+		fi
+
+        printLog $LINENO INFO cleanEnv "清理 docker 镜像"
+		imagesList=$(docker image ls -aq)
+		if [ -n "$imagesList" ]
+		then
+			docker image rm $imagesList
+		fi
+
+		#卸载docker组件
+        printLog $LINENO INFO cleanEnv "卸载docker组件"
+		systemctl stop docker
+		rpm -e $(rpm -qa docker*)
+	else
+		echo docker 未安装
+        printLog $LINENO WARNING cleanEnv "docker 未安装"
+	fi
+
+	#清理docker-compose目录
+    printLog $LINENO INFO cleanEnv "清理docker-compose目录"
+	dockerComposePath="/home/s"
+	if [ -d $dockerComposePath ]
+	then
+		rm -rf $dockerComposePath
+	fi
+
+	#清理docker数据目录
+    printLog $LINENO INFO cleanEnv "清理docker-compose目录"
+	rm -rf /data/docker /data/var_lib_docker /data/monitor
+
+}
+
+execSql() {
+    dbHost=$1
+    dbPwd=$2
+
+    if [[ "$dbHost" = "" || "$dbPwd" = "" ]]
+    then
+        printLog $LINENO ERROR execSql "数据库参数错误!"
+        return 1
+    fi
+
+    if [ -n "$argExecValue" ]
+    then
+        docker exec -it cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbPwd} -e "$argExecValue"
+        printLog $LINENO DEBUG execSql "docker exec -it cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbPwd} -e $argExecValue" 0
+    else
+        docker exec -it cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbPwd}
+        printLog $LINENO DEBUG execSql "docker exec -it cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbPwd}" 0
+    fi
+    return $?
+}
+
+restoreDB() {
+    dbHost=$1
+    dbPwd=$2
+    restoreName=$3
+
+    if [[ "$dbHost" = "" || "$dbPwd" = "" || "$restoreName" = "" ]]
+    then
+        printLog $LINENO ERROR restoreDB "数据库参数错误!"
+        return 1
+    fi
+
+    backupCheck "$restoreName"
+    if [ "$?" != "0" ]
+    then
+        printLog $LINENO ERROR restoreDB "还原数据失败,指定的数据库内容错误."
+        return 1
+    fi
+    if [ -f "$restoreName" ]
+    then
+        printf "正在还原mysql数据库\033[5m ... \033[0m"
+        docker exec -i cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbPwd}  cactus < "$restoreName"
+        printf "\r正在还原mysql数据库 ...\n"
+    fi
+    return $?
+}
+
+backupDB() {
+    dbHost=$1
+    dbPwd=$2
+    backupName=$3
+
+    if [[ "$dbHost" = "" || "$dbPwd" = "" || "$backupName" = "" ]]
+    then
+        printLog $LINENO ERROR backupDB "数据库参数错误!"
+        return 1
+    fi
+
+    ignore_tables="--ignore-table=cactus.log_report_kb_leak_statistics --ignore-table=cactus.log_report_kb_detail_statistics --ignore-table=cactus.360exthost_quarant_log"
+    ignore_tables="${ignore_tables} --ignore-table=cactus.360exthost_360sdmgr_setting_log --ignore-table=cactus.kb_total_history --ignore-table=cactus.monitor_info"
+    ignore_tables="${ignore_tables} --ignore-table=cactus.360exthost_pluginmgr_log --ignore-table=cactus.360edr_hotpatch_log --ignore-table=cactus.360leakfix_system_log"
+    ignore_tables="${ignore_tables} --ignore-table=cactus.360leakfix_system --ignore-table=cactus.360exthost_softmgr --ignore-table=cactus.360exthost_softmgr_log"
+
+    if [ ! -f "$backupName" ]
+    then
+        printf "正在备份mysql数据库\033[5m ... \033[0m"
+        docker exec -i cactus-web mysqldump --single-transaction ${ignore_tables} -h${dbHost} -ucactus -p${dbPwd} cactus >$backupName
+        printf "\r正在备份mysql数据库 ...\n"
+    fi
+
+    backupCheck "$backupName"
+    return $?
+}
+
+#检查数据库是否正确
+backupCheck() {
+    if [ -f "$1" ]
+    then
+        backupCheck=$(head -n 6 $1|grep "mysql"|grep "cactus")
+        if [ -n "$backupCheck" ]
+        then
+            return 0
+        fi
+    else
+        return 1
+    fi
+
+    return 1
 }
 
 #修改EPP管理员密码
@@ -523,8 +1054,9 @@ setpw() {
     getInstStatus
     if [ $? = 0 ]
     then
-        docker exec -it cactus-web php /home/q/system/safe-cactus/application/script/ResetPassword.php
-	return $?
+        eppPwdInfo=$(docker exec -it cactus-web php /home/q/system/safe-cactus/application/script/ResetPassword.php)
+        eppPwdInfo=$(echo $eppPwdInfo|grep "："|awk '{print $2}')
+	    return $?
     fi
 
     return 1
@@ -532,10 +1064,10 @@ setpw() {
 
 #文件下载;传入参数: $1 = url, $2 = filePath
 fileDownload() {
+    echo "$1 >> $2"
     rm -f "$2"
     result=1
-    (wget --connect-timeout 100 --no-check-certificate -O "$2" "$1" || curl --fail --connect-timeout 100 -k "$1" > "$2")&&result=0
-
+    (wget --connect-timeout 50 --no-check-certificate -O "$2" "$1" || curl --fail --connect-timeout 50 -kL "$1" > "$2")&&result=0
     if [ "${result}" = "0" ]
     then
         return 0
@@ -573,6 +1105,7 @@ printLog() {
 }
 
 printStatus() {
+
     getPackageType
     if [ "$DEB_BASED" = "1" ]
     then
@@ -590,63 +1123,87 @@ printStatus() {
         packageType="unknown"
     fi
 
-    getConfEra ${eraConfFile}
-    echo "Agent name: ${eraName}"
-    echo "Agent version: ${eraVersion}"
-    echo "Agent directory: ${eraInstallDir}"
-    echo "Agent hostname: ${eraRemoteHost}"
-
-    #获取需要安装的产品类型: esets|efs
-    getProductType
-    #如果 -b 参数被指定,则安装旧版本.
-    if [ "${argsBefore}" = "1" ]
+    #是否已安装EPP控制台
+    getInstStatus
+    if [ $? -eq 0 ]
     then
-        productType=esets
-    fi
-
-    if [ "$productType" = "efs" ]
-    then
-        if [ -f  "/opt/eset/efs/sbin/startd" ]
-        then
-            getProductVersion "${packageType}" "efs"
-            productName="efs"
-            productDirectory="/opt/eset/efs"
-            currentProductVersion="$(echo "${currentProductVersion}" | awk -F. 'OFS="." {print $1,$2}')"
-        fi
+        echo "$productName安装状态: 正常"
     else
-        if [ -f  "/opt/eset/esets/sbin/esets_daemon" ]
-        then
-            productName="esets"
-            productDirectory="/opt/eset/eset"
-            currentProductVersion="4.5"
-        fi
+        echo "$productName安装状态: 异常"
     fi
-    
-    echo ${testLine}
-    echo "Product name: ${productName}"
-    echo "Product version: ${currentProductVersion}"
-    echo "Prodcut directory: ${productDirectory}"
 
+    echo "$productName安装版本: $nowVersion"
+    echo "安装IP: $serverIp"
+
+    echo "数据库账号密码:$dbUser/$dbPwd"
+    echo "容器列表状态:"
+    if [ "$instStatus" == "True" ]
+    then
+        for i in $nowContainerList
+        do
+            #echo -e "name:$i \t\t\t\t\t status:$(docker inspect -f {{.State.Status}} $i) \t\t\t port:$(docker inspect -f {{.HostConfig.PortBindings}}  $i)"
+            status=$(docker inspect -f {{.State.Status}} $i)
+            port=$(docker inspect -f {{.HostConfig.PortBindings}}  $i)
+            printf "\t容器:%-30s 状态:%-10s 端口:%-10s\n" "$i" "$status" "$port"
+        done
+    fi
     echo ${testLine}
-    echo hostname: $(hostname)
-    echo ip list: $(hostname -I)
-    echo "包管理: ${packageType}"
-    echo "内核信息: $(uname -a)"
+    #计算内存使用百分比
+    #memTotal=$(head -v -n 8 /proc/meminfo|grep "MemTotal:"|awk '{print $2}')
+    #memAvailable=$(head -v -n 8 /proc/meminfo|grep "MemAvailable:"|awk '{print $2}')
+    #memUsed=$[(memTotal-memAvailable)/1024]
+    #memTotal=$[memTotal/1024]
+
+    memTotal=$(free -m|grep "^Mem:"|awk '{print $2}')
+    memUsed=$(free -m|grep "^Mem:"|awk '{print $3}')
+    memPercent=$(awk -v x=$memUsed -v y=$memTotal 'BEGIN {printf "%.2f\n", x / y* 100 }')
+    echo "启动时间:            $(uptime -s)"
+    echo "内存使用(已用/总量): $memUsed MB / $memTotal MB; $memPercent %"
+
+    #计算CPU使用百分比
+    sleep 0.2
+    s=$(head -n 1 /proc/stat);totalOld=$(echo $s|awk '{for(i=2;i<12;i++){t=t+$i};{print t}}');idleOld=$(echo $s|awk '{print $5}')
+    sleep 2
+    s=$(head -n 1 /proc/stat);totalNew=$(echo $s|awk '{for(i=2;i<12;i++){t=t+$i};{print t}}');idleNew=$(echo $s|awk '{print $5}')
+    cpuPercent=$(awk -v idleOld=$idleOld -v idleNew=$idleNew -v totalOld=$totalOld -v totalNew=$totalNew 'BEGIN {printf "%.2f\n", (1 - (idleNew - idleOld) / (totalNew - totalOld)) * 100}')
+
+    echo "CPU使用信息:         $cpuPercent %"
+    echo "存储信息:"
+
+    #修改默认分隔符
+    IFSOLD=$IFS
+    IFS=$'\n'
+    for i in $(df -h|grep "^/dev")
+    do
+        echo -e "\t$i"
+    done
+    IFS=$IFSOLD
+    echo ${testLine}
+    printf "正在统计登录信息,时间取决于被攻击的次数(只对最后5000次的登录情况进行统计)\033[5m ... \033[0m"
+    getSecureInfo
+    printf "\r正在统计登录信息,时间取决于被攻击的次数(只对最后5000次的登录情况进行统计) ... \n"
+    echo "登录失败用户数: ${#loginUserArry[@]}"
+    echo "登录失败用户TOP10(用户:失败次数): ${loginUserArry[@]:0:10}"
+    echo ${testLine}
+    echo "  主机名称: $(hostname)"
+    echo IP地址列表: $(hostname -I)
+
+
+    echo "    包管理: ${packageType}"
+    echo "  内核信息: $(uname -a)"
 
 	if [ -f /etc/os-release ]
 	then
 		releaseVersion=$(cat /etc/os-release |grep '^ID='|awk -F= '{print $2}'&&cat /etc/os-release |grep '^VERSION_ID='|awk -F= '{print $2}')
+        releaseVersion=$(echo $releaseVersion|sed 's/\n//g')
 	fi
-    echo 发行版本: ${releaseVersion//'"'}
+    echo "  发行版本: ${releaseVersion//'"'}"
     echo 内核安装信息:
-    $searchCommand *kernel*
-    echo "脚本参数: ${args}"
-    if [ -n "${eraName}" ] && [ -n "${productName}" ]
-    then
-        echo "************** 软件安装正常 **************"
-    else
-        echo "************** 软件安装异常 **************"
-    fi
+    for i in $($searchCommand *kernel*)
+    do
+        echo -e "\t$i"
+    done
+    echo "脚本参数: ${srcArgs}"
 }
 
 # --------------func-------------------------
@@ -654,19 +1211,17 @@ printStatus() {
 #脚本入口点
 main() {
 
-    getInstStatus
-    echo is - $?
-    exit 0
-    if [ "$args" = "" ]
+    if [ "$srcArgs" = "" ]
     then
-        getGuiHelp
+        getCuiHelp
     fi
-    if [ ! "$args" = "" ]
+    if [ ! "$srcArgs" = "" ]
     then
-        getArgs $args
+        echo $srcArgs
+        getArgs "$@"
         if [ $? != 0 ]
         then
-            printLog $LINENO WARNING main "Invalid input:[${args}]"
+            printLog $LINENO WARNING main "Invalid input:[${srcArgs}]"
             echo "Use [--help] to print infomation for help."
         fi
     else
@@ -675,1461 +1230,321 @@ main() {
     fi
 
     #关闭日志打印
-    if [ "${argsLog}" = "1" ]
+    if [ "${argLog}" = "1" ]
     then
         logLevel="FALSE"
     fi
 
     #打印帮助信息 
-    if [ "$argsHelp" = "1" ]
+    if [ "$argHelp" = "1" ]
     then
         printLog $LINENO INFO main "打印帮助信息."
         getCuiHelp
         exit 0
     fi
 
-    #开启http 代理
-    if [ "${argsProxy}" = "1" ]
+    #打印当前版本
+    if [ "${argVersion}" = "1" ]
     then
+        printLog $LINENO INFO getVersion "当前版本: $scriptVersion"
+    fi
+
+    #开启http 代理
+    if [ "${argProxy}" = "1" ]
+    then
+        printLog $LINENO INFO setProxy "配置代理信息."
         enableProxy ${httpProxy}
     fi
 
-
-    #卸载 Agent
-    if [ "$argsUndoAgent" = "1" ]
+    #版本升级
+    if [ "$argUpgrade" == "1" ]
     then
-        printLog $LINENO WARNING uninstallAgent "卸载 Agent."
-        if [ "${userID}" = "0" ]
-            then
-            if [ ! -f "${eraDir}/setup/uninstall.sh" ]
-            then 
-                printLog $LINENO INFO uninstallAgent "Agent 未安装,无需卸载."
-            else
-                uninstallAgent "${eraDir}/setup/uninstall.sh"
-                if [ "$?" = "0" ]
-                then
-                    printLog $LINENO INFO uninstallAgent "Agent 卸载成功."
-                else
-                    printLog $LINENO ERROR uninstallAgent "Agent 卸载失败."
-                fi
-            fi
+        printLog $LINENO INFO upgradeVersion "版本升级."
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO upgradeVersion "需要root权限才能使用此功能: sudo bash $0 $*"
         else
-             printLog $LINENO ERROR uninstallAgent “你必须要以root身份运行此脚本,才能正常使用这些功能”
+            upgradeVersion $argUpgradeValue
+            if [ $? -eq 0 ]
+            then
+                printLog $LINENO INFO upgradeVersion "版本升级成功."
+            else
+                printLog $LINENO ERROR upgradeVersion "版本升级失败."
+            fi
+            return 0
         fi
     fi
 
-    if [ $argSetpw = 1 ]
+    #备份数据库
+    if [ "$argBackupData" = "1" ]
     then
-        setpw
-        if [ $? = 0 ]
+        printLog $LINENO INFO backupDB "备份数据库."
+        if [ $userID -ne 0 ]
         then
-            printLog $LINENO INFO setPassword “已成功重置密码”
+            printLog $LINENO INFO backupDB "需要root权限才能使用此功能: sudo bash $0 $*"
         else
-            printLog $LINENO WARNING setPassword “重置密码失败.”
+            getInstStatus
+            if [ "$instStatus" == "True" ]
+            then
+                if [ -n "$argBackupDataValue" ]
+                then
+                    dbPath="$argBackupDataValue"
+                else
+                    formatTime=$(date +%Y%m%d%H%M%S)
+                    dbPath="cactus_${formatTime}_${nowVersion//./}.bak"
+                fi
+                backupDB "$dbHost" "$dbPwd" "$dbPath"
+                if [ "$?" == "0" ]
+                then
+                    printLog $LINENO INFO backupDB "数据库备份成功:[${dbPath}]."
+                else
+                    printLog $LINENO ERROR backupDB "数据库备份失败."
+                fi
+            else
+                printLog $LINENO WARNING backupDB "EPP未安装或安装错误,数据库备份失败."
+            fi
+        fi
+    fi
+
+    if [ "$argDown" == "1" ]
+    then
+            printLog $LINENO INFO upgradeDownload "获取升级文件."
+            upgradeFileDown $argDownValue
+    fi
+
+    #还原数据库
+    if [ "$argRestoreData" = "1" ]
+    then
+        printLog $LINENO INFO RestoreDB "还原数据库."
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO RestoreDB "需要root权限才能使用此功能: sudo bash $0 $*"
+        else
+            getInstStatus
+            if [ "$instStatus" == "True" ]
+            then
+                if [ -f "$argRestoreDataValue" ]
+                then
+                    dbPath="$argRestoreDataValue"
+
+                    if [ "$argForce" == "1" ]
+                    then
+                        restoreDB "$dbHost" "$dbPwd" "$dbPath"
+                    else
+                        echo
+                        echo 此操作将会删除以下内容:
+                        echo
+                        echo "    1.覆盖现有配置信息"
+                        echo "    2.覆盖现有防护日志"
+                        echo
+                        printf '\33[5m \33[33m以上操作无法恢复,如果您不知道会造成什么后果,请立即退出!!!\033[0m\n'
+                        echo
+                        read -p '确定执行此操作? < yes/no >: ' input
+                        if [ "${input}" == "yes" ]
+                        then
+                            restoreDB "$dbHost" "$dbPwd" "$dbPath"
+                        fi
+                    fi
+                    
+                    if [ "$exitCode" == "0" ]
+                    then
+                        printLog $LINENO INFO restoreDB "数据库还原成功."
+                    else
+                        printLog $LINENO ERROR restoreDB "数据库还原失败."
+                    fi
+
+                else
+                    printLog $LINENO WARNING restoreDB "未指定数据库,或者指定的数据库无效,还原失败"
+                fi
+            else
+                printLog $LINENO WARNING restoreDB "EPP未安装或安装错误,数据库还原失败."
+            fi
+        fi
+    fi
+
+    #进入执行mysql命令
+    if [ "$argExec" = "1" ]
+    then
+        printLog $LINENO INFO execSql "执行数据库命令."
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO execSql "需要root权限才能使用此功能: sudo bash $0 $*"
+        else
+            getInstStatus
+            if [ "$instStatus" == "True" ]
+            then
+                execSql "$dbHost" "$dbPwd"
+                if [ "$?" == "0" ]
+                then
+                    printLog $LINENO INFO execSql "执行命令成功"
+                else
+                    printLog $LINENO WARNING execSql "执行命令失败"
+                fi
+            else
+                printLog $LINENO WARNING execSQL "EPP未安装或安装错误,执行mysql命令失败."
+            fi
+        fi
+    fi
+  
+    #重置密码
+    if [ "$argSetpw" == "1" ]
+    then
+        printLog $LINENO INFO setPassword "重置密码."
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO setPassword "需要root权限才能使用此功能: sudo bash $0 $*"
+        else
+            if [ "$argForce" == "1" ]
+            then
+                setpw
+            else
+                echo
+                echo 此操作将会做如下修改:
+                echo
+                echo "    1.将 eppadmin 密码重置"
+                echo "    2.重置后将无法使用之前的密码进行登录"
+                echo
+                printf '\33[5m \33[33m以上操作无法恢复,如果您不知道会造成什么后果,请立即退出!!!\033[0m\n'
+                echo
+                read -p '确定执行此操作? < yes/no >: ' input
+                if [ "${input}" == "yes" ]
+                then
+                    setpw
+                else
+                    command -v !!! 2>/dev/null
+                fi
+            fi
+
+            if [ $? -eq 0 ]
+            then
+                printLog $LINENO INFO setPassword "已成功重置密码: $eppPwdInfo"
+            else
+                printLog $LINENO WARNING setPassword "重置密码失败."
+            fi
+        fi
+    fi
+
+    #安全加固
+    if [ "$argSetSafe" == "1" ]
+    then
+        printLog $LINENO INFO setSafe "安全加固."
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO setSafe "需要root权限才能使用此功能: sudo bash $0 $*"
+        else
+            if [ "$argForce" == "1" ]
+            then
+                setSafe
+            else
+                echo
+                echo 此操作将会做如下修改:
+                echo
+                echo "    1.禁止使用root进行ssh登录"
+                echo "    2.开启密码过期 60 天"
+                echo "    3.开启密码最小长度 9 位"
+                echo "    4.开启密码尝试次数 3 次"
+                echo "    5.新建 360epp用户,并指定初始密码为: 360Epp1234."
+                echo
+                printf '\33[5m \33[33m以上操作无法恢复,如果您不知道会造成什么后果,请立即退出!!!\033[0m\n'
+                echo
+                read -p '确定执行此操作? < yes/no >: ' input
+                if [ "${input}" == "yes" ]
+                then
+                    setSafe
+                fi
+            fi
+        fi
+    fi
+
+    #获取最新安装包
+    if [ "$argGetInstPkg" == "1" ]
+    then
+        printLog $LINENO INFO getInstPkg "获取安装包."
+        getCodeArry "${instUrlPath}/${codeInfoName}" "${tempPath}/inst_${codeInfoName}"
+        if [ $? -eq 0 ]
+        then
+            getTmpVer "${instInfoArry[-1]}"
+            echo $testLine
+            echo
+            echo  "    版本: $tmpVer"
+            echo  "    code: $tmpCode"
+            echo  "      sn: $tmpSn"
+            echo  "     MD5: $tmpMd5"
+            echo "下载路径: ${tempPath}/$tmpName"
+            echo
+            echo $testLine
+            printLog $LINENO INFO getInstPkg "开始下载安装安装包..."
+            fileDownload "${instUrlPath}/$tmpName" "${tempPath}/$tmpName"
+            if [ $? -eq 0 ]
+            then
+                printLog $LINENO INFO getInstPkg "检查文件完整性."
+                localMd5=$(md5sum "${tempPath}/$tmpName" | cut -d ' ' -f 1)
+                if [ "$tmpMd5" == "$localMd5" ]
+                then
+                    printLog $LINENO INFO getInstPkg "MD5对比一致,文件下载正常"
+                else
+                    printLog $LINENO INFO getInstPkg "MD5对比不一致,文件下载异常"
+                fi
+            else
+                printLog $LINENO ERROR getInstPkg "下载安装包失败,请检查网络."
+            fi
+        else
+            printLog $LINENO ERROR getInstPkg "获取安装包失败,无法获取版本信息."
+        fi
+    fi
+
+    #清理EPP安装环境
+    if [ "$argClean" == "1" ]
+    then
+        printLog $LINENO INFO cleanEPP "清理EPP安装环境."
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO cleanEPP "需要root权限才能使用此功能: sudo bash $0 $*"
+        else
+            if [ "$argForce" == "1" ]
+            then
+                cleanEnv
+            else
+                echo
+                echo 此操作将会删除以下内容:
+                echo
+                echo "    1.删除所有docker容器"
+                echo "    2.删除所有docker镜像"
+                echo "    3.卸载掉所有docker开头的安装包 (rpm -qa docker*)"
+                echo "    4.删除 /home/s, /data/docker, /data/var_lib/docker, /data/mointor"
+                echo
+                printf '\33[5m \33[33m以上操作无法恢复,如果您不知道会造成什么后果,请立即退出!!!\033[0m\n'
+                echo
+                read -p '确定执行此操作? < yes/no >: ' input
+                if [ "${input}" == "yes" ]
+                then
+                    cleanEnv
+                fi
+            fi
         fi
     fi
 
     #移除临时文件
-    if [ "${argsRemove}" = "1" ]
+    if [ "${argsRemove}" == "1" ]
     then
         printLog $LINENO INFO removeTempDir "删除临时文件."
         echo "${tempPath}/*"
-        test -d "${tempPath}" && [ "$(echo "${tempPath}" | awk -F/ '{print $2}')" = "tmp" ] && rm -f ${tempPath}/*.{ini,sh,deb,rpm,ca,cert,bin}
+        test -d "${tempPath}" && [ "$(echo "${tempPath}" | awk -F/ '{print $2}')" = "tmp" ] && rm -f ${tempPath}/*.{log,sh,tar.gz,txt}
     fi
 
     #获取系统状态
-    if [ "${argsStatusInfo}" = "1" ]
+    if [ "${argStatusInfo}" == "1" ]
     then
         printLog $LINENO INFO getStatus "打印环境状态..."
-        printStatus | tee -a "${logPath}"
+        if [ $userID -ne 0 ]
+        then
+            printLog $LINENO INFO getStatus "需要root权限才能使用此功能: sudo bash $0 $*"
+        else
+            printStatus | tee -a "${logPath}"
+        fi
     fi
+
 }
 
-main
+main "$@"
 exit $?
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#!/bin/bash
-
-check_update(){
-    echo "开始检测升级环境:"
-    upUser=$(whoami)
-    if [ "$upUser" != "root" ]
-    then
-        echo "upgrade user not root!"
-        return 1
-    fi
-
-    arch=$(hostnamectl | grep 'Kernel' | grep 'x86_64')
-    if [ "$arch" = "" ]
-    then
-        echo "arch: $arch not supported!"
-        return 1
-    fi
-
-    compose_file=/home/s/lcsd/docker-compose.yml
-    has_mysql=$(grep 'cactus-mysql' ${compose_file} | grep -v '#' || echo "false")
-    has_web=$(grep 'cactus-web' ${compose_file} | grep -v '#' || echo "false")
-    if [[ "$has_mysql" != "false" && "$has_web" = "false" ]]
-    then
-        echo "================================="
-        echo " => 注意: 当前升级分离部署mysql服务!"
-        echo "================================="
-    fi
-
-    if [[ "$has_mysql" = "false" && "$has_web" != "false" ]]
-    then
-        echo "================================="
-        echo " => 注意: 当前升级分离部署web服务!"
-        echo "================================="
-    fi
-
-    return 0
-}
-
-before_update(){
-    script_dir=$tmp_dir/safe-cactus/ext/cactus-web/script
-
-    if [ ! -d $script_dir ]
-    then
-        return 0
-    fi
-
-    is_before=$(ls $script_dir | grep '.sh' | grep 'before_db_' || echo "false")
-    if [ "$is_before" = "false" ]
-    then
-        return 0
-    fi
-
-    compose_file=/home/s/lcsd/docker-compose.yml
-    has_mysql=$(grep 'cactus-mysql' ${compose_file} | grep -v '#' || echo "false")
-    if [ "$has_mysql" = "false" ]
-    then
-        return 0
-    fi
-
-    echo "前置服务升级:"
-    export tmp_dir=$tmp_dir
-    if [ -d $script_dir ]
-    then
-        for sh_script in $(ls $script_dir | grep '.sh' | grep 'before_db_')
-        do
-            echo " run $sh_script :"
-            /bin/sh ${script_dir}/${sh_script} gotoend
-            if [ "$?" != "0" ]
-            then
-                echo "    error: $? ... "
-            fi
-            /bin/rm -rf ${script_dir}/${sh_script}
-            echo "    ok..."
-        done
-    fi
-
-    return 0
-}
-
-splic_update(){
-    echo "提取升级文件:"
-    ARCHIVE=$(awk '/^__ARCHIVE_BELOW__/ {print NR + 1; exit 0;}' $0)
-    mkdir -p $tmp_dir
-    tail -n+$ARCHIVE $0 | tar --no-same-owner -C $tmp_dir -xz
-    if [ "$?" != "0" ]
-    then
-        echo "提取升级文件失败!"
-        rm -rf $tmp_dir
-        return 1
-    fi
-
-    before_update
-    if [ "$?" = "1" ]
-    then
-        return 1
-    fi
-
-    return 0
-}
-
-stop_super(){
-    while true
-    do
-        dk_status=$(docker exec -i cactus-web supervisorctl status)
-        web_status=$(echo $dk_status | grep 'Error response from daemon')
-        is_start=$(echo $dk_status | grep 'supervisor.sock')
-        if [[ "$web_status" = "" && "$is_start" = "" ]]
-        then
-            break
-        fi
-        sleep 10
-    done
-    docker exec -i cactus-web /usr/bin/supervisorctl stop all
-    
-    return 0
-}
-
-end_update(){
-    compose_file=/home/s/lcsd/docker-compose.yml
-    echo "===================================================="
-    echo "重启epp服务[1-3]:"
-    echo " 1 - 停止应用docker服务:"
-    docker-compose -f ${compose_file} down
-    echo "----------------------------------------------------"
-    echo " 2 - 重启宿主机docker:"
-    systemctl restart docker
-    if [ "$?" = "0" ]
-    then
-        echo " 2 - 重启宿主机docker完成"
-        echo "----------------------------------------------------"
-        echo " 3 - 重新启动应用docker服务:"
-        docker-compose -f ${compose_file} up -d
-        echo " 3 - 重启完成"
-        echo "----------------------------------------------------"
-        sleep 10
-
-    else
-        echo "重启宿主机docker失败，请手动依次执行下列命令进行重启:"
-        echo "systemctl restart docker"
-        echo "docker-compose -f ${compose_file} up -d"
-    fi
-
-    echo "升级完成"
-    return 0
-}
-
-back_db(){
-    dbHost=$1
-    dbpwd=$2
-    bak_time=$3
-
-    if [[ "$dbHost" = "" || "$dbpwd" = "" ]]
-    then
-        echo "备份DB参数错误!"
-        return 1
-    fi
-
-    ignore_tables="--ignore-table=cactus.log_report_kb_leak_statistics --ignore-table=cactus.log_report_kb_detail_statistics --ignore-table=cactus.360exthost_quarant_log"
-    ignore_tables="${ignore_tables} --ignore-table=cactus.360exthost_360sdmgr_setting_log --ignore-table=cactus.kb_total_history --ignore-table=cactus.monitor_info"
-    ignore_tables="${ignore_tables} --ignore-table=cactus.360exthost_pluginmgr_log --ignore-table=cactus.360edr_hotpatch_log --ignore-table=cactus.360leakfix_system_log"
-    ignore_tables="${ignore_tables} --ignore-table=cactus.360leakfix_system --ignore-table=cactus.360exthost_softmgr --ignore-table=cactus.360exthost_softmgr_log"
-
-    if [ ! -f cactus_bak_${bak_time}.sql ]
-    then
-        echo "备份mysql数据库..."
-        docker exec -i cactus-web mysqldump --single-transaction ${ignore_tables} -h${dbHost} -ucactus -p${dbpwd} cactus >cactus_bak_${bak_time}.sql
-    fi
-
-    return 0
-}
-
-main()
-{
-    echo "===================================================="
-    echo "开始升级360EPP管控中心"
-    echo "----------------------------------------------------"
-    check_update
-    if [ "$?" = "1" ]
-    then
-        exit 1
-    fi
-
-    bak_time=$(date +%Y%m%d%H%M%S)
-    export bak_time=$bak_time
-    tmp_dir=/opt/epp-up-$(date +%Y%m%d%H%M%S)
-    compose_file=/home/s/lcsd/docker-compose.yml
-    msecret=n
-    has_mysql=$(grep 'cactus-mysql' ${compose_file} | grep -v '#' || echo "false")
-    if [[ "$has_mysql" != "false" && ! -d /data/docker/cactus-web ]]
-    then
-        # 分离部署的mysql
-        splic_update
-        echo "清理临时升级文件:"
-        rm -rf $tmp_dir
-        end_update
-        exit 0
-    fi
-
-    if [ ! -f /data/docker/cactus-web/system/safe-cactus/version ]
-    then
-        echo "upgrade version file not found!"
-        exit 1
-    fi
-
-    script_name=$0
-    upver=$(echo $script_name | awk -F 'updatepkg' '{print $NF}' | tr -cd "[0-9+].[0-9+].[0-9+].[0-9+]\-[0-9+].[0-9+].[0-9+].[0-9+]" | sed -r 's#^\.+##' | sed -r 's#\.+$##')
-    start_version=$(echo $upver | awk -F '-' '{print $1}')
-    end_version=$(echo $upver | awk -F '-' '{print $2}')
-    now_version=$(grep 'sv=' /data/docker/cactus-web/system/safe-cactus/version  | sed "s#sv=##" | tr -cd "[0-9+].[0-9+].[0-9+].[0-9+]\-[0-9+].[0-9+].[0-9+].[0-9+]")
-    if [[ "$now_version" = "" || "$start_version" = "" || "$end_version" = "" ]]
-    then
-        echo "upgrade version not found!"
-        exit 1
-    fi
-    is_newnac=$(echo "$end_version 10.0.0.06200" | tr " " "\n" | sort -rV | head -n 1 | grep "$end_version" || echo 'false')
-    echo "升级从 $start_version 到 $end_version, 当前版本: $now_version"
-
-    min_version=$(echo "$start_version $now_version" | tr " " "\n" | sort -V | head -n 1)
-    max_version=$(echo "$end_version $now_version" | tr " " "\n" | sort -rV | head -n 1)
-    if [[ "$start_version" != "$now_version" && "$end_version" != "$now_version" ]]
-    then
-        if [[ "$min_version" = "$now_version" || "$now_version" = "$max_version" ]]
-        then
-            echo "not supported upgrade version: $now_version"
-            exit 1
-        fi
-    fi
-    echo "----------------------------------------------------"
-    echo "环境检测完成, 提取升级文件和升级授权文件, 请稍等..."
-
-    base_dir=/data/docker
-    mkdir -p $tmp_dir
-    ARCHIVE=$(awk '/^__ARCHIVE_BELOW__/ {print NR + 1; exit 0;}' $0)
-    tail -n+$ARCHIVE $0 | tar --no-same-owner -C $tmp_dir -xz
-    if [ "$?" != "0" ]
-    then
-        echo "提取升级文件失败!"
-        rm -rf $tmp_dir
-        exit 1
-    fi
-
-    if [ -d $tmp_dir/safe-cactus/ext/eppenv ]
-    then
-        sn=$(cat $tmp_dir/safe-cactus/ext/eppenv/README)
-        echo "1.请输入SN号为: $sn 的安装授权码:"
-        while true
-        do
-            read -r code
-            dd if=$tmp_dir/safe-cactus/ext/eppenv/${sn}.sec |openssl enc -aes-256-cbc -d -k ${code} -md md5 |tar zxf - | echo "0"
-            if [[ ! -f eppenv ]]
-            then
-                echo "EPP [SN: ${sn}] 授权码错误，请重新输入:"
-            else
-                echo "提取授权文件完成, 升级授权完成..."
-                break
-            fi
-        done
-        mv eppenv $tmp_dir/safe-cactus/ext/eppenv/
-    fi
-
-    echo "----------------------------------------------------"
-    echo "提取服务配置:"
-    dbpwd=""
-    dbHost=""
-    server_ip=""
-    cdb=$base_dir/cactus-web/system/safe-cactus/application/config/production/conf/db.json
-    if [ -f $cdb ]
-    then
-        dbpwd=$(echo $(cat cat /data/docker/cactus-web/system/safe-cactus/application/config/production/conf/db.json) | sed "s# ##g" | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}'| grep -Po '"password":".*?"'| awk -F '"' '{print $4}')
-        dbHost=$(echo $(cat $cdb) | sed "s# ##g"  | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
-        server_ip=$(echo $(cat $cdb) | sed "s# ##g" | grep -Po '"local_server":".*?"' | awk -F '"' '{print $4}' )
-    fi
-cat /data/docker/cactus-web/system/safe-cactus/application/config/production/conf/db.json
-    if [ "$dbpwd" = "" ]
-    then
-        dbpwd="3fed7751744b8b59"
-    fi
-
-    if [ "$dbHost" = "" ]
-    then
-        dbHost="mysql"
-    fi
-
-    if [[ "$server_ip" = "" && -f $base_dir/cascade-server/application-test.yml ]]
-    then
-        server_ip=$(cat $base_dir/cascade-server/application-test.yml | grep "current_ip" | sed "s# ##g" | awk -F ':' '{print $2}')
-    fi
-
-    if [ "$server_ip" = "" ]
-    then
-        server_ip=$(docker exec -i cactus-web mysql -h${dbHost} -ucactus -p${dbpwd} -e "select value from cactus.setting where name='msgsrvip' limit 1"| grep -v Warn | grep -v grep | grep ':'|awk '{print $2}'|awk -F':' '{print $1}')
-        if [ "$?" != "0" ]
-        then
-            echo "[ERROR] mysql -h${dbHost} -ucactus -p${dbpwd} connect mysql failed, please check mysql health and network!"
-            exit 1
-        fi
-    fi
-    echo "提取配置完成, 当前服务器IP: $server_ip"
-    echo $server_ip > server_ip.log
-    is_local_mysql=$(grep 'image' ${compose_file} | grep 'mysql' | grep -v '#' || echo 0 )
-
-    #if [ -f $base_dir/cactus-web/system/safe-cactus/application/script/sh/Migrate.sh ]
-    #then
-    #    back_db "$dbHost" $dbpwd "$bak_time"
-    #    echo "1.2 安装 migrate 记录..."
-    #    docker exec -i cactus-web sh /home/q/system/safe-cactus/application/script/sh/Migrate.sh install
-    #fi
-
-    before_update
-
-    echo "----------------------------------------------------"
-    echo "停止cactus-web容器中 supervisor 进程:"
-    stop_super
-
-    echo "----------------------------------------------------"
-    bak_dir=$base_dir/cactus-web/system/safe-cactus-$bak_time
-    echo "备份safe-cactus: $bak_dir"
-    mv $base_dir/cactus-web/system/safe-cactus $bak_dir
-    echo "备份safe-cactus 完成, 准备升级文件"
-
-    mv $tmp_dir/safe-cactus $base_dir/cactus-web/system/
-    rm -rf $tmp_dir
-    echo "升级文件准备完成, 开始升级:"
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/eppenv/eppenv ]
-    then
-        echo "升级运行授权文件..."
-        cp $base_dir/cactus-web/system/eppenv $base_dir/cactus-web/system/eppenv-$bak_time
-        /bin/cp $base_dir/cactus-web/system/safe-cactus/ext/eppenv/eppenv $base_dir/cactus-web/system/
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql ]
-    then
-        back_db "$dbHost" $dbpwd "$bak_time"
-
-        echo "开始升级mysql数据库:"
-        is_sign=$(grep '__HOST_IP__' $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql| grep -v grep)
-        if [ "$is_sign" != "" ]
-        then
-            sign_salt=$(echo "$(date +%s%N)85$RANDOM"  | md5sum | cut -c 1-32)
-            key_salt=$(echo "$(date +%s%N)69$RANDOM"  | md5sum | cut -c 1-32)
-            cnd_salt=$(echo "$(date +%s%N)cdn87$RANDOM"  | md5sum | cut -c 1-32)
-            sed -i "s/__C_SIGN_SALT__/$sign_salt/g" $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-            sed -i "s/__C_KEY_SALT__/$key_salt/g" $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-            sed -i "s/__CDN_KEY__/$cnd_salt/g" $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-            sed -i "s/__HOST_IP__/$server_ip/g" $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-        fi
-        docker exec -i cactus-web mysql --default-character-set=utf8 -h${dbHost} -ucactus -p${dbpwd}  cactus < $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/mysql/update.sql
-        if [ "$?" != "0" ]
-        then
-            echo "[ERROR] 升级mysql数据库失败! 请联系专业人员处理"
-        else
-            echo "升级mysql数据库完成!"
-        fi
-    fi
-
-    bak_cdb=$bak_dir/application/config/production/conf/db.json
-    echo "----------------------------------------------------"
-    if [ -f $bak_cdb ]
-    then
-        echo "设置db.json..."
-        newconf=$(grep 'clickhouse' $cdb )
-        oldconf=$(grep 'clickhouse' $bak_cdb)
-        ck_pass="d1afdb00a5939afe"
-        ck_df_pass="2cb0f8dd1afdb00a"
-        if [[ "$newconf" != "" && "$oldconf" = "" ]]
-        then
-            #dbUser=$(echo $(cat $bak_cdb) | sed "s# ##g" | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}'| grep -Po '"username":".*?"'| awk -F '"' '{print $4}')
-            dbpwd=$(echo $(cat $bak_cdb) | sed "s# ##g" | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}'| grep -Po '"password":".*?"'| awk -F '"' '{print $4}')
-            dbHost=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
-            dbPort=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"port":".*?"' | awk -F '"' '{print $4}')
-            local_mac=$(echo $(cat $bak_cdb) | sed "s# ##g" | grep -Po '"local_mac":".*?"' | awk -F '"' '{print $4}')
-            #rds_ip=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"redis":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
-            #rds_prot=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"redis":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"port":".*?"' | awk -F '"' '{print $4}')
-            rds_pass=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"redis":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"password":".*?"' | awk -F '"' '{print $4}')
-
-            sed -i "s#__HOST_IP__#${server_ip}#" $cdb
-            sed -i "s#__HOST_MAC__#${local_mac}#" $cdb
-            sed -i "s#\"mysql\",#\"${dbHost}\",#g" $cdb
-            sed -i "s#3306#${dbPort}#g" $cdb
-            sed -i "s#3fed7751744b8b59#${dbpwd}#g" $cdb
-            sed -i "s#34aca5f40#${rds_pass}#g" $cdb
-
-            ck_ip='cactus-clickhouse'
-            if [ "${dbHost}" != "mysql" ]; then
-                ck_ip=${dbHost}
-            fi
-
-            ck_df_pass=$(echo "${uuid}-$(date +%Y%m%d)-3604" | md5sum | cut -c 2-20)
-            ck_pass=$(echo "$dbpwd" | md5sum | cut -c 3-21 )
-
-            sed -i "s#__CK_HOST__#${ck_ip}#" $cdb
-            sed -i "s#__CK_USER__#cactus#" $cdb
-            sed -i "s#__CK_PASSWORD__#${ck_pass}#" $cdb
-            sed -i "s#__CK_PORT_MYSQL__#9004#" $cdb
-            sed -i "s#__CK_PORT_CK__#9000#" $cdb
-        else
-            ck_ip=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"clickhouse":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
-            dbHost=$(echo $(cat $bak_cdb) | sed "s# ##g"  | grep -Po '"mysql":{.*?}' | grep -Po '"master":{.*?}' | grep -Po '"ip":".*?"' | awk -F '"' '{print $4}')
-            /bin/cp -rf $bak_cdb $cdb
-
-            ck_mysql=$(grep 'port_mysql' $cdb )
-            if [ "$ck_mysql" = "" ]
-            then
-                ck_mysql_fix=$(grep 'port_' $cdb | grep -v 'port_ck' | awk -F '"' '{print $2}')
-                if [ "$ck_mysql_fix" != "" ]
-                then
-                    sed -i "s#$ck_mysql_fix#port_mysql#" $cdb
-                fi
-            fi
-        fi
-    fi
-
-    if [ -d $bak_dir/cert ]
-    then
-        echo "恢复证书文件..."
-        if [ ! -d $base_dir/cactus-web/system/safe-cactus/cert ]
-        then
-            mkdir $base_dir/cactus-web/system/safe-cactus/cert
-        fi
-        /bin/cp -r $bak_dir/cert/* $base_dir/cactus-web/system/safe-cactus/cert/
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/rsa_creator ]
-    then
-        echo "更新证书文件..."
-        if [ ! -d $base_dir/cactus-web/system/safe-cactus/cert ]
-        then
-            mkdir $base_dir/cactus-web/system/safe-cactus/cert
-        fi
-        if [ -f $base_dir/cactus-web/system/safe-cactus/cert/auth_priv_prod.pem ]
-        then
-            /bin/rm -rf $base_dir/cactus-web/system/safe-cactus/cert/auth_priv_prod.pem
-        fi
-        if [ -f $base_dir/cactus-web/system/safe-cactus/cert/auth_pub_prod.pem ]
-        then
-            /bin/rm -rf $base_dir/cactus-web/system/safe-cactus/cert/auth_pub_prod.pem
-        fi
-        $base_dir/cactus-web/system/safe-cactus/ext/rsa_creator rsa -o $base_dir/cactus-web/system/safe-cactus/cert/auth_priv_prod.pem -po $base_dir/cactus-web/system/safe-cactus/cert/auth_pub_prod.pem
-    fi
-
-    if [ -d $bak_dir/application/data/licenses ]
-    then
-        echo "恢复licenses文件..."
-        rm -rf $base_dir/cactus-web/system/safe-cactus/application/data/licenses
-        /bin/cp -r $bak_dir/application/data/licenses $base_dir/cactus-web/system/safe-cactus/application/data/
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/application/script/sh/Migrate.sh ]
-    then
-        back_db "$dbHost" $dbpwd "$bak_time"
-        echo "升级 migrate 记录 ..."
-        docker exec -i cactus-web sh /home/q/system/safe-cactus/application/script/sh/Migrate.sh migrate
-        
-        if [ "$?" != "0" ]
-        then
-            echo -e "\033[31m [ERROR] upgrade migrate error \033[0m"
-            echo -e "\033[31m [ERROR] 升级后请手动尝试执行： \033[0m"
-            echo -e "\033[31m [ERROR]    docker exec -i cactus-web sh /home/q/system/safe-cactus/application/script/sh/Migrate.sh migrate  \033[0m"
-        fi
-    fi
-
-    if [ "$msecret" = "y" ]
-    then
-        echo "----------------------------------------------------"
-        echo "更新 mysql | redis password..."
-        mysql_root_pass=$(echo "${uuid}-$(date +%Y%m%d)-3606" | md5sum | cut -c 1-16)
-        mysql_pass=$(echo "${uuid}-$(date +%Y%m%d)-3605" | md5sum | cut -c 1-16)
-        redis_pass=$(echo "${uuid}-$(date +%Y%m%d)-3609" | md5sum | cut -c 1-9)
-
-        old_mysql_root_pass=$(grep 'MYSQL_ROOT_PASSWORD' ${compose_file} | awk -F ' ' '{print $2}')
-        old_redis_pass=$(grep 'requirepass' ${compose_file} | awk -F ' ' '{print $5}')
-
-        echo "update safe-cactus config (mysql|redis) password..."
-        sed -ir "s#${dbpwd}#${mysql_pass}#g" $base_dir/cactus-web/system/safe-cactus/application/config/production/conf/db.json
-        sed -ir "s#${old_redis_pass}#${redis_pass}#g" $base_dir/cactus-web/system/safe-cactus/application/config/production/conf/db.json
-
-        echo "update mysql server user password..."
-        echo "set password for root@localhost=password('${mysql_root_pass}');" > sec.sql
-        echo "set password for cactus@'%'=password('${mysql_pass}');" >> sec.sql
-        echo "flush privileges;" >> sec.sql
-
-        use_mysql_root_pass=$old_mysql_root_pass
-        if [ "$old_mysql_root_pass" = "1234567" ]
-        then
-            use_mysql_root_pass="887cc0fb48f9"
-        fi
-
-        docker exec -i mysql mysql -uroot -p${use_mysql_root_pass} < sec.sql
-
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "back docker-compose.yml..."
-            cp ${compose_file} ${compose_file}.$bak_time
-        fi
-
-        echo "update redis password...."
-        sed -ir "s#YSQL_ROOT_PASSWORD: ${old_mysql_root_pass}#YSQL_ROOT_PASSWORD: ${mysql_root_pass}#" ${compose_file}
-        sed -ir "s#requirepass ${old_redis_pass}#requirepass ${redis_pass}#" ${compose_file}
-
-        docker-compose -f ${compose_file} up -d
-        echo "wait 20s, service start..."
-        sleep 20
-        
-        dbpwd=$mysql_pass
-    fi
-
-    echo "----------------------------------------------------"
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/clean_lcs_log.cron ]
-    then
-        echo "升级 clean_lcs_log.cron..."
-        cp -f $base_dir/cactus-web/system/safe-cactus/ext/clean_lcs_log.cron /etc/cron.d/ && chmod 644 /etc/cron.d/clean_lcs_log.cron
-    fi
-
-    is_up_docker_compose="n"
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cascade-server ]
-    then
-        echo "备份级联文件..."
-        cp -rf $base_dir/cascade-server $base_dir/cascade-server.$bak_time
-
-        echo "升级级联文件 ..."
-        sed -i "s/current_ip: 127.0.0.1/current_ip: $server_ip/g" $base_dir/cactus-web/system/safe-cactus/ext/cascade-server/application-test.yml
-        rm -rf $base_dir/cascade-server/*
-        cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cascade-server/* $base_dir/cascade-server/
-
-        if [ -f $base_dir/cactus-web/system/safe-cactus/ext/docker-compose.yml ]
-        then
-            sec_ect=$(grep 'cascade-server' $base_dir/cactus-web/system/safe-cactus/ext/docker-compose.yml | grep -v grep)
-            if [ ! -z "$sec_ect" ]
-            then
-                echo "update docker-compose.yml ..."
-                cp ${compose_file} ${compose_file}.$bak_time
-                cas_compose_data=$(fgrep 'SNAPSHOT.jar' ${compose_file}  | grep -v grep)
-                sed -i "s#${cas_compose_data}#${sec_ect}#"  ${compose_file} 
-                is_up_docker_compose="y"
-            fi
-        fi
-
-        if [ -f $base_dir/cascade-server/start.sh ]
-        then
-            if [ ! -f ${compose_file}.$bak_time ]
-            then
-                cp ${compose_file} ${compose_file}.$bak_time
-            fi
-
-            cascade_start=$(cat ${compose_file} | grep '/home/q/cascade-server/lib/cascade-service' | grep -v grep | awk -F 'entrypoint:' '{print $2}')
-            if [ "$cascade_start" != "" ]
-            then
-                sed -ir "s#${cascade_start}#/bin/sh -c '/bin/sh /home/q/cascade-server/start.sh && /bin/bash'#" ${compose_file}
-            fi
-            #sed -ir "s#java -jar -Dspring.profiles.active=test -Dakmc.cascade.base_dir=/home/q/cascade-server/ -Dspring.config.additional-location=file:/home/q/cascade-server/,file:/home/q/conf/db.json /home/q/cascade-server/lib/cascade-service-1.0.0.2200-SNAPSHOT.jar#/bin/sh -c '/bin/sh /home/q/cascade-server/start.sh && /bin/bash'#" ${compose_file}
-        fi
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/docker-cascade ]
-    then
-        if [ -d $base_dir/cactus-web/system/safe-cactus/ext/docker-cascade/cascade-server ]
-        then
-             echo "备份级联文件..."
-            /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/docker-cascade/cascade-server $base_dir/
-        fi
-
-        sed -i "s/current_ip: 127.0.0.1/current_ip: $server_ip/g" $base_dir/cascade-server/application-test.yml
-
-        is_has=$(grep 'cactus-cascade' ${compose_file})
-        if [ "$is_has" = "" ]
-        then
-            echo "升级级联文件 ..."
-            echo "bakup to ${compose_file}.$bak_time"
-            cp ${compose_file} ${compose_file}.$bak_time
-
-            netline=$(grep -n 'networks:' ${compose_file}|awk -F':' '{print $1}')
-            netbeforeline=$(expr $netline - 1)
-            sed -i "${netbeforeline}r $base_dir/cactus-web/system/safe-cactus/ext/docker-cascade/docker-compose.yml.cascade" ${compose_file}
-            sed -i "s#VolumesBase#$base_dir#g" ${compose_file}
-            docker load --input $base_dir/cactus-web/system/safe-cactus/ext/docker-cascade/cactus-cascade_v1.1.tar
-
-            is_up_docker_compose="y"
-        fi
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/docker ]
-    then
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "备份 docker-compose.yml 文件..."
-            cp ${compose_file} ${compose_file}.$bak_time
-        fi
-
-        if [ -d $base_dir/cactus-web/system/safe-cactus/ext/docker/images ]
-        then
-            echo "加载docker镜像:"
-            for image_line in $(ls $base_dir/cactus-web/system/safe-cactus/ext/docker/images | grep tar)
-            do
-                is_ck=$(echo $image_line | grep 'clickhouse')
-                if [[ "$is_ck" != "" && "$ck_ip" != "cactus-clickhouse" ]]
-                then
-                    continue
-                fi
-
-                is_mysql=$(echo $image_line | grep 'mysql')
-                if [[ "$is_mysql" != "" && "$dbHost" != "mysql" ]]
-                then
-                    continue
-                fi
-
-                echo "$image_line"
-                docker load -i $base_dir/cactus-web/system/safe-cactus/ext/docker/images/$image_line
-                
-                load_image_name=$(echo "$image_line" | awk -F '_' '{print $1}')
-                load_image_ver=$(echo "$image_line" | awk -F '_' '{print $2}' | awk -F '.tar' '{print $1}')
-                attr_image="$load_image_name:$load_image_ver"
-                old_image=$(cat ${compose_file} | grep "image:" | grep "$load_image_name" | head -1 | awk -F '/' '{print $3}')
-                if [ "$old_image" != "" ]
-                then
-                    echo "update $old_image to $attr_image"
-                    sed -ir "s#$old_image#$attr_image#g" ${compose_file}
-                    sed -ir "s#cloud-ee/$attr_image#epp-images/$attr_image#g" ${compose_file}
-                fi
-            done
-        fi
-
-        docker_files=$base_dir/cactus-web/system/safe-cactus/ext/docker/files
-        if [ -d $docker_files ]
-        then
-            for image_files in $(ls $docker_files)
-            do
-                if [[ "$image_files" = "cactus-clickhouse" && "$ck_ip" != "cactus-clickhouse" ]]
-                then
-                    continue
-                fi
-
-                if [ -d $base_dir/$image_files ]
-                then
-                    echo "备份docker服务文件: $image_files "
-                    if [ "$image_files" != "cactus-naceng" ]
-                    then
-                        if [ "$image_files" = "cactus-mysql" ]
-                        then
-                            if [ -f $docker_files/cactus-mysql/my.conf ]
-                            then
-                                echo "备份mysql配置文件:"
-                                /bin/cp -rf $base_dir/cactus-mysql/my.conf $base_dir/cactus-mysql/my.conf.${bak_time}
-                                echo "  ok.."
-                                echo "升级mysql配置文件:"
-                                /bin/cp -rf $docker_files/cactus-mysql/my.conf $base_dir/cactus-mysql/my.conf
-                                echo " ok.."
-                            fi
-                        else
-                            mv $base_dir/$image_files $base_dir/${image_files}.${bak_time}
-                        fi
-                    else
-                        if [ "$is_newnac" != "false" ]
-                        then
-                            mv $base_dir/$image_files $base_dir/${image_files}.${bak_time}
-                        fi
-                    fi
-                fi
-
-                if [ -d $docker_files/$image_files ]
-                then
-                    if [ "$image_files" != "cactus-naceng" ]
-                    then
-                        echo "升级docker服务文件: $image_files"
-                        /bin/cp -rfp $docker_files/$image_files $base_dir/
-                    else
-                        if [ ! -d $base_dir/cactus-naceng ]
-                        then
-                            echo "升级docker服务文件: $image_files"
-                            /bin/cp -rfp $docker_files/$image_files $base_dir/
-                        fi
-                    fi
-                fi
-
-                if [ "$image_files" = "cactus-clickhouse" ]
-                then
-                    if [ -f ${DockerVolumesBasePath}/cactus-clickhouse/conf/users.xml ]; then
-                        sed -i "s/2cb0f8dd1afdb00a/${ck_df_pass}/" ${base_dir}/cactus-clickhouse/conf/users.xml
-                        sed -i "s/d1afdb00a5939afe/${ck_pass}/" ${base_dir}/cactus-clickhouse/conf/users.xml
-                    fi
-                fi
-
-                if [ "$image_files" = "cascade-server" ]
-                then
-                    image_files="cactus-cascade"
-                    sed -i "s/current_ip: 127.0.0.1/current_ip: $server_ip/g" $base_dir/cascade-server/application-test.yml
-                fi
-
-                cimage_file=$base_dir/cactus-web/system/safe-cactus/ext/docker/docker-compose.yml.$image_files
-                if [ -f $cimage_file ]
-                then
-                    is_load=$(grep "$image_files" ${compose_file})
-                    if [ "$is_load" = "" ]
-                    then
-                        echo "update docker-compose.yml for $image_files"
-                        if [ "$is_local_mysql" = "0" ]
-                        then
-                            isDependMysql=$(grep 'cactus-mysql' ${cimage_file} | grep -v '#')
-                            if [ "$isDependMysql" != "" ]
-                            then
-                                dependOnNum=$(grep -v '#' ${cimage_file} | grep -A2 'depends_on' | grep -c ' - ')
-                                if [ "$dependOnNum" = "1" ]
-                                then
-                                    dependOn=$(grep 'depends_on' ${cimage_file} | grep -v '#')
-                                    dos=$(echo ${dependOn})
-                                    sed -ri "s/${dos}/#${dos}/" ${cimage_file}
-                                fi
-                                dms=$(echo ${isDependMysql})
-                                sed -ri "s/${dms}/#${dms}/" ${cimage_file}
-                            fi
-
-                            mysqlline=$(grep -n '- cactus-mysql' ${cimage_file}| grep -v '#' | awk -F':' '{print $1}')
-                            mysqlbeforeline=$(expr $mysqlline - 1)
-                            sed -i "${mysqlline}r/-l/#-/" ${compose_file}
-                            sed -i "${mysqlbeforeline}r/- cactus-mysql/#- cactus-mysql/" ${compose_file}
-                        fi
-
-                        netline=$(grep -n 'networks:' ${compose_file}|awk -F':' '{print $1}')
-                        netbeforeline=$(expr $netline - 1)
-                        sed -i "${netbeforeline}r ${cimage_file}" ${compose_file}
-                        sed -i "s#VolumesBase#$base_dir#g" ${compose_file}
-
-                        has_cacade_img=$(grep 'CactCascadeName' ${compose_file})
-                        if [ "$has_cacade_img" != "" ]
-                        then
-                            cascade_img=$(grep 'epp-images/cactus-cascade' ${compose_file}  | head -n1 | awk '{print $2}')
-                            sed -i "s#CactCascadeName#${cascade_img}#g" ${compose_file}
-                        fi
-                    fi
-                fi
-            done
-        fi
-
-        ngx_file=$base_dir/cactus-web/system/safe-cactus/ext/docker/docker-compose.yml.cactus-nginx
-        if [ -f $ngx_file ]; then
-            is_load=$(grep "cactus-nginx" ${compose_file})
-            if [ "$is_load" = "" ]; then
-                echo "update docker-compose.yml for cactus-nginx"
-                https_port=$(grep -A20 'container_name: cactus-web' ${compose_file} | grep ':443"' | tr -d '"' | tr -d '-' | tr -d ' ' | awk -F ':' '{print $1}')
-                if [ "$https_port" = "" ]; then
-                    https_port=443
-                fi
-                http_port=$(grep -A20 'container_name: cactus-web' ${compose_file} | grep ':80"' | tr -d '"' | tr -d '-' | tr -d ' ' | awk -F ':' '{print $1}')
-                if [ "$http_port" = "" ]; then
-                    http_port=8081
-                fi
-
-                sed -ir '/container_name: cactus-web/,//{s/- "8082:8082"/#- "8082:8082"/}' ${compose_file}
-                sed -ir 's/- "'${https_port}':443"/#- "'${https_port}':443"/' ${compose_file}
-                sed -ir 's/- "'${http_port}':80"/#- "'${http_port}':80"/' ${compose_file}
-
-                netline=$(grep -n 'networks:' ${compose_file}|awk -F':' '{print $1}')
-                netbeforeline=$(expr $netline - 1)
-                sed -i "${netbeforeline}r ${ngx_file}" ${compose_file}
-                ngx_img=$(echo $base_dir/cactus-web/system/safe-cactus/ext/docker/images/cactus-nginx_*.tar)
-                ngx_img_name=$(echo "$ngx_img" | awk -F '/' '{print $NF}' | sed  's#_#:#' | sed 's#.tar##')
-                sed -ir "s#CactNginxName#r.addops.soft.360.cn/epp-images/${ngx_img_name}#" ${compose_file}
-                sed -ir "s#VolumesBase#$base_dir#g" ${compose_file}
-                sed -i "s/WEB_HTTPS_PORT/${https_port}/" ${compose_file}
-                sed -i "s/WEB_HTTP_PORT/${http_port}/" ${compose_file}
-            fi
-        fi
-
-        is_up_docker_compose="y"
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script ]
-    then
-        is_compose_up=$(ls $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script | grep '.sh' | grep 'service_compose_')
-        if [ "$is_compose_up" != "" ]
-        then
-            echo "----------------------------------------------------"
-            echo "执行服务自定义升级SH文件:"
-            for sh_script in $(ls $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script | grep '.sh' | grep 'service_compose_')
-            do
-                echo " run $sh_script :"
-                /bin/sh $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script/$sh_script gotoend
-                if [ "$?" != "0" ]
-                then
-                    echo "    error: $? ... "
-                else
-                    echo "    ok..."
-                fi
-            done
-            echo "----------------------------------------------------"
-            is_up_docker_compose="y"
-        fi
-    fi
-
-    has_mysql=$(grep 'cactus-mysql' ${compose_file} | grep -v '#' || echo "false")
-    if [ "$has_mysql" != "false" ]
-    then
-        is_up_mysql_tz=$(grep -A10 'container_name: mysql' ${compose_file} | grep 'TZ: Asia/Shanghai' )
-        if [ "$is_up_mysql_tz" = "" ]
-        then
-            echo "upgrade docker compose TZ:"
-            line=$(grep -nA15 'container_name: mysql' ${compose_file} | grep 'MYSQL_ROOT_PASSWORD' | awk -F '-' '{print $1}')
-            if [ "$line" != "" ]
-            then
-                line_data="########            TZ: Asia/Shanghai"
-                sed -i "${line} a ${line_data}" ${compose_file}
-                sed -ir "s/########//" ${compose_file}
-                echo "[SUCC] mysql TZ up success"
-            else
-                echo "[FAIL] mysql TZ up failed"
-            fi
-            is_up_docker_compose="y"
-        fi
-    fi
-
-    if [ "$end_version" = "10.0.0.04113" ]
-    then
-        isUp=$(grep '8022:22' ${compose_file} | grep -v "#" | grep -v "grep" )
-        if [ "$isUp" != "" ]
-        then
-            sed -ir 's/- "8022:22"/#- "8022:22"/' ${compose_file}
-        fi
-
-        isUpCascade=$(grep '36444:36444' ${compose_file} | grep -v "#" | grep -v "grep")
-        isUpCascadeG=$(grep '36093:36093' ${compose_file} | grep -v "#" | grep -v "grep")
-        if [[ "$isUpCascade" != "" || "$isUpCascadeG" != "" ]]
-        then
-            sed -ir '/container_name: cactus-cascade/,//{s/ports/#ports/}' ${compose_file}
-            sed -ir 's/- "36093:36093"/#- "36093:36093"/' ${compose_file}
-            sed -ir 's/- "36094:36094"/#- "36094:36094"/' ${compose_file}
-            sed -ir 's/- "36444:36444"/#- "36444:36444"/' ${compose_file}
-        fi
-
-        is_up_docker_compose="y"
-    fi
-
-    if [ "$end_version" = "10.0.0.05000" ]
-    then
-        echo "更新镜像仓库:"
-        for images_info in $(docker images -a | fgrep cloud-ee | awk '{print $3"---"$1":"$2}' | sed "s#cloud-ee#epp-images#g" | sed "s#jre8#cactus-cascade#")
-        do
-            image_id=$(echo "$images_info" | awk -F '---' '{print $1}')
-            image_name_tag=$(echo "$images_info" | awk -F '---' '{print $2}')
-            image_name=$(echo "$image_name_tag" | awk -F ':' '{print $1}')
-            image_tag=$(echo "$image_name_tag" | awk -F ':' '{print $2}')
-            image_has=$(docker images | grep "$image_name" | grep "$image_tag" | grep -v grep)
-            if [ "$image_has" = "" ]
-            then
-                echo "tag: $image_id $image_name_tag"
-                docker tag $image_id $image_name_tag
-            fi
-        done
-        # 把docker-compose中的镜像，改名
-        sed -i "s#cloud-ee#epp-images#g" ${compose_file}
-        sed -i "s#jre8#cactus-cascade#g" ${compose_file}
-
-        # cascade 更新改名方式
-        old_cascade_start=$(grep 'java -jar -Dspring.profiles.active=test' ${compose_file} | grep -v grep | awk -F 'entrypoint:' '{print $2}')
-        if [ "$old_cascade_start" != "" ]
-        then
-            sed -ri "s#${old_cascade_start}# /bin/sh -c '/bin/sh /home/q/cascade-server/start.sh \&\& /bin/bash'#" ${compose_file}
-        fi
-
-        qconf_status=$(grep -A 1 'cascade-server:/home' ${compose_file} | grep '/home/q/conf')
-        if [ "$qconf_status" = "" ]
-        then
-            cascade_line=$(grep -n 'cascade-server:/home' ${compose_file} | awk -F ':' '{print $1}')
-            qconf_line=$(expr $cascade_line + 1)
-            sed -i "${qconf_line}i ########    - VolumesBase/cactus-web/system/safe-cactus/application/config/production/conf:/home/q/conf" ${compose_file}
-            sed -i 's/########/        /' ${compose_file}
-            sed -i "s#VolumesBase#$base_dir#g" ${compose_file}
-        fi
-
-        is_up_docker_compose="y"
-    fi
-
-    isUpNewtrans=$(grep "cactus-newtransserver/etc/config.ini" ${compose_file})
-    if [ "$isUpNewtrans" = "" ]
-    then
-        echo "更新 docker-compose.yml, 升级 cactus-newtransserver 配置"
-        sed -ir "s#cactus-newtransserver:/docker#cactus-newtransserver:/docker\n            - /data/docker/cactus-newtransserver/etc/config.ini:/etc/config.ini#" ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    isUpCascade=$(grep '36444:36444' ${compose_file} | grep -v "#" | grep -v "grep")
-    if [ "$isUpCascade" != "" ]
-    then
-        echo "更新 docker-compose.yml, 关闭端口:36444 "
-        sed -ir 's/- "36444:36444"/#- "36444:36444"/' ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    isUpCascadeG=$(grep '36094:36094' ${compose_file} | grep -v "#" | grep -v "grep")
-    if [ "$isUpCascadeG" != "" ]
-    then
-        echo "更新 docker-compose.yml, 关闭端口:36094 "
-        sed -ir 's/- "36094:36094"/#- "36094:36094"/' ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    isUpSeccPord=$(grep '36025:36025' ${compose_file} | grep -v "#" | grep -v "grep")
-    if [ "$isUpSeccPord" != "" ]
-    then
-        echo "更新 docker-compose.yml, 关闭端口:36025 "
-        sed -ir '/container_name: seccscan/,//{s/ports/#ports/}' ${compose_file}
-        sed -ir 's/- "36025:36025"/#- "36025:36025"/' ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    has_storage=$(grep 'cactus-web/storage' ${compose_file})
-    if [ "$has_storage" = "" ]
-    then
-        echo "更新 docker-compose.yml, 升级 cactus-web/storage "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "备份 ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        sed -ri '/storage:\/data\/storage/d' ${compose_file}
-        sed -ri '/supervisord.d\/?:\/etc\/supervisord.d/{h;s#/data/docker/.+$#/data/docker/cactus-web/storage:/data/storage#;x;G}' ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    large_port=$(grep -A 20 'container_name: cactus-web' ${compose_file} | grep -v grep | grep 'ip_local_port_range')
-    if [ "$large_port" = "" ]
-    then
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "备份 ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        echo "更新 docker-compose.yml, 升级 cactus-web ip_local_port_range "
-        envNum=$(grep -n -A 20 'container_name: cactus-web' ${compose_file} | grep -v grep | grep 'environment' | awk -F '-' '{print $1}')
-        sed -ir "${envNum}s/environment:/sysctls:\n            net.ipv4.ip_local_port_range: \"10000    65000\"\n        environment:/" ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    has_ngx=$(grep 'container_name: cactus-nginx' ${compose_file} | grep -v grep)
-    if [ "$has_ngx" != "" ]
-    then
-        large_ngx_port=$(grep -A 20 'container_name: cactus-nginx' ${compose_file} | grep -v grep | grep 'ip_local_port_range')
-        if [ "$large_ngx_port" = "" ]
-        then
-            if [ ! -f ${compose_file}.$bak_time ]
-            then
-                echo "备份 ${compose_file}.$bak_time"
-                /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-            fi
-            echo "更新 docker-compose.yml, 升级 cactus-nginx ip_local_port_range "
-            envNum=$(grep -n -A 20 'container_name: cactus-nginx' ${compose_file} | grep -v grep | grep 'environment' | awk -F '-' '{print $1}')
-            sed -ir "${envNum}s/environment:/sysctls:\n            net.ipv4.ip_local_port_range: \"10000    65000\"\n        environment:/" ${compose_file}
-            is_up_docker_compose="y"
-        fi
-    fi
-
-    web_core=$(grep 'container_name: cactus-web' -n -A 5 ${compose_file} | grep 'core: 0' | grep -v 'grep')
-    if [ "$web_core" = "" ]
-    then
-        echo "更新 docker-compose.yml, 升级 cactus-web core "
-        /bin/cp -rf ${compose_file} ${compose_file}.web.$bak_time
-        core_line=$(grep 'container_name: cactus-web' -n5 ${compose_file} | grep "command" | grep -v 'grep' | awk -F'-' '{print $1}')
-        core_data="UUUUUUUU       ulimits:\n            core: 0"
-        sed -i "${core_line} a $core_data" ${compose_file}
-        sed -i "s#UUUUUUUU# #" ${compose_file}
-        is_up_docker_compose="y"
-    fi
-
-    is_up_docker_compose_clean="n"
-    disable_nsqadmin=$(grep 'nsqadmin:' ${compose_file}  | grep -v "#" | grep -v grep)
-    if [ "$disable_nsqadmin" != "" ]
-    then
-        echo "更新 docker-compose.yml, 升级 nsqadmin "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        cat ${compose_file} | sed  '/nsqadmin:/,/^\s*$/{s/^/#/}' | sed -r 's/^[\s#]+$//'  > /home/s/lcsd/docker-compose_new.yml
-        mv ${compose_file} ${compose_file}.disable_nsqadmin.$bak_time
-        mv /home/s/lcsd/docker-compose_new.yml ${compose_file}
-        is_up_docker_compose_clean="y"
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    nofile="UUUUUUUU    nofile:\n                soft: 102400\n                hard: 102400"
-    nolimit="UUUUUUUU       ulimits:\n            core: 0\n    nofile:\n                soft: 102400\n                hard: 102400"
-    isUp=$(grep -A10 'container_name: cactus-web' ${compose_file} | grep 'nofile' || echo "false")
-    if [ "$isUp" = "false" ]; then
-        echo "更新 docker-compose.yml, 升级 web ulimit "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        line=$(grep -nA20 'container_name: cactus-web' ${compose_file}  | grep core | awk -F '-' '{print $1}')
-        sed -i "${line} a ${nofile}" ${compose_file}
-        sed -i "s#UUUUUUUU#        #" ${compose_file}
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    isUpcas=$(grep -7 'container_name: cactus-cascade' ${compose_file} | grep 'nofile' || echo "false")
-    if [ "$isUpcas" = "false" ]; then
-        echo "更新 docker-compose.yml, 升级 cactus-cascade ulimit "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        line=$(grep -n7 'container_name: cactus-cascade' ${compose_file}  | grep core | awk -F '-' '{print $1}')
-        if [ "$line" = "" ]; then
-            line=$(grep -n 'container_name: cactus-cascade' ${compose_file} | awk -F ':' '{print $1}')
-            sed -i "${line} a ${nolimit}" ${compose_file}
-        else
-            sed -i "${line} a ${nofile}" ${compose_file}
-        fi
-        sed -i "s#UUUUUUUU#        #" ${compose_file}
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    isUpsec=$(grep -7 'container_name: seccscan' ${compose_file} | grep 'nofile' || echo "false")
-    if [ "$isUpsec" = "false" ]; then
-        echo "更新 docker-compose.yml, 升级 seccscan ulimit "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        line=$(grep -n7 'container_name: seccscan' ${compose_file}  | grep core | awk -F '-' '{print $1}')
-        if [ "$line" = "" ]; then
-            line=$(grep -n 'container_name: seccscan' ${compose_file} | awk -F ':' '{print $1}')
-            sed -i "${line} a ${nolimit}" ${compose_file}
-        else
-            sed -i "${line} a ${nofile}" ${compose_file}
-        fi
-        sed -i "${line} a ${nofile}" ${compose_file}
-        sed -i "s#UUUUUUUU#        #" ${compose_file}
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    isUpsecurity=$(grep -7 'container_name: cactus-security' ${compose_file} | grep 'nofile' || echo "false")
-    if [ "$isUpsecurity" = "false" ]; then
-        echo "更新 docker-compose.yml, 升级 cactus-security ulimit "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        line=$(grep -n7 'container_name: cactus-security' ${compose_file}  | grep core | awk -F '-' '{print $1}')
-        if [ "$line" = "" ]; then
-            line=$(grep -n 'container_name: cactus-security' ${compose_file} | awk -F ':' '{print $1}')
-            sed -i "${line} a ${nolimit}" ${compose_file}
-        else
-            sed -i "${line} a ${nofile}" ${compose_file}
-        fi
-        sed -i "s#UUUUUUUU#        #" ${compose_file}
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    isUpnaceng=$(grep -7 'container_name: naceng' ${compose_file} | grep 'nofile' || echo "false")
-    if [ "$isUpnaceng" = "false" ]; then
-        echo "更新 docker-compose.yml, 升级 naceng ulimit "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        line=$(grep -n7 'container_name: naceng' ${compose_file}  | grep core | awk -F '-' '{print $1}')
-        if [ "$line" = "" ]; then
-            line=$(grep -n 'container_name: naceng' ${compose_file} | awk -F ':' '{print $1}')
-            sed -i "${line} a ${nolimit}" ${compose_file}
-        else
-            sed -i "${line} a ${nofile}" ${compose_file}
-        fi
-        sed -i "s#UUUUUUUU#        #" ${compose_file}
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    isUpecb=$(grep -7 'container_name: cactus-ecbclient' ${compose_file} | grep 'nofile' || echo "false")
-    if [ "$isUpecb" = "false" ]; then
-        echo "更新 docker-compose.yml, 升级 cactus-ecbclient ulimit "
-        if [ ! -f ${compose_file}.$bak_time ]
-        then
-            echo "bakup to ${compose_file}.$bak_time"
-            /bin/cp -r ${compose_file} ${compose_file}.$bak_time
-        fi
-        line=$(grep -n7 'container_name: cactus-ecbclient' ${compose_file}  | grep core | awk -F '-' '{print $1}')
-        if [ "$line" = "" ]; then
-            line=$(grep -n 'container_name: cactus-ecbclient' ${compose_file} | awk -F ':' '{print $1}')
-            sed -i "${line} a ${nolimit}" ${compose_file}
-        else
-            sed -i "${line} a ${nofile}" ${compose_file}
-        fi
-        sed -i "s#UUUUUUUU#        #" ${compose_file}
-        is_up_docker_compose="y"
-        echo "ok"
-    fi
-
-    if [ "$is_up_docker_compose" = "y" ]
-    then
-        echo "更新容器服务..."
-        if [ "$is_up_docker_compose_clean" = "y" ]
-        then
-            docker-compose -f ${compose_file} up -d --remove-orphans
-        else
-            docker-compose -f ${compose_file} up -d
-        fi
-
-        stop_super
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/lcs ]
-    then
-        echo "备份 lcs 服务: $base_dir/lcs.$bak_time"
-        /bin/cp -r $base_dir/lcs $base_dir/lcs.$bak_time
-        echo "升级 lcs 服务..."
-        #/bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/lcs/* $base_dir/lcs/
-        if [ -f $base_dir/cactus-web/system/safe-cactus/ext/lcs/conf/tconf.ini ]
-        then
-            # upgrade pc_typeid
-            new_typeid=$(grep 'pc_typeid' $base_dir/cactus-web/system/safe-cactus/ext/lcs/conf/tconf.ini)
-            if [ "$new_typeid" != "" ]
-            then
-                old_typeid_line=$(grep -n 'pc_typeid' $base_dir/lcs/conf/tconf.ini | awk -F ':' '{print $1}')
-                if [ "$old_typeid_line" != "" ]
-                then
-                    sed -i "${old_typeid_line}d" $base_dir/lcs/conf/tconf.ini
-                    sed -i "/product_combo_typeid/a\\${new_typeid}" $base_dir/lcs/conf/tconf.ini
-                fi
-            fi
-        fi
-        docker-compose -f ${compose_file} restart lcs nginx
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/start.sh ]
-    then
-        echo "升级 cactus-web start.sh ..."
-        #docker exec -it cactus-web ln -s /home/q/system/cab_decode/jre/bin/java /usr/bin/
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/start.sh $base_dir/cactus-web/
-        echo "ok"
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/process/cascade/agent/conf/conf.yaml ]
-    then
-        echo "更新 cactus agent 配置 ..."
-        sed -i "s/NEED_REPLACE_CACTUS_WEB_IP/$server_ip/g" $base_dir/cactus-web/system/safe-cactus/process/cascade/agent/conf/conf.yaml
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/process/bin/agent/release.toml ]
-    then
-        echo "更新 monitor 配置 ..."
-        sed -i "s/__HOST_IP__/$server_ip/g" $base_dir/cactus-web/system/safe-cactus/process/bin/agent/release.toml
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/dl.360safe.com ]
-    then
-        echo "----------------------------------------------------"
-        echo "升级客户端文件:"
-        echo "升级 dl.360safe.com 文件..."
-        dl_bak_dir=$base_dir/cactus-web/system/dl.360safe.com-$bak_time
-        mkdir $dl_bak_dir
-        /bin/cp -r $base_dir/cactus-web/system/dl.360safe.com/* $dl_bak_dir/
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/dl.360safe.com/* $base_dir/cactus-web/system/dl.360safe.com/
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/sdup.360.cn ]
-    then
-        echo "升级 sdup.360.cn 文件..."
-        dl_bak_dir=$base_dir/cactus-web/system/sdup.360.cn-$bak_time
-        mkdir $dl_bak_dir
-        /bin/cp -r $base_dir/cactus-web/system/sdup.360.cn/* $dl_bak_dir/
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/sdup.360.cn/* $base_dir/cactus-web/system/sdup.360.cn/
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/sdup.qihucdn.com ]
-    then
-        echo "升级 sdup.qihucdn.com 文件..."
-        dl_bak_dir=$base_dir/cactus-web/system/sdup.qihucdn.com-$bak_time
-        mkdir $dl_bak_dir
-        /bin/cp -r $base_dir/cactus-web/system/sdup.qihucdn.com/* $dl_bak_dir/
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/sdup.qihucdn.com/* $base_dir/cactus-web/system/sdup.qihucdn.com/
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/nginx ]
-    then
-        nginx_bak_dir=$base_dir/cactus-web/nginx.$bak_time
-        echo "备份nginx配置: $nginx_bak_dir"
-        /bin/cp -rf $base_dir/cactus-web/nginx $nginx_bak_dir
-        echo "升级nginx配置..."
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/nginx/* $base_dir/cactus-web/nginx/
-
-        if [ ! -d $base_dir/cactus-web/logs/download.microsoft.com/web ]
-        then
-            mkdir -p $base_dir/cactus-web/logs/download.microsoft.com/web
-            mkdir -p $base_dir/cactus-web/logs/download.microsoft.com/app
-        fi
-
-        if [ ! -d $base_dir/cactus-web/logs/archive.kylinos.cn/web ]
-        then
-            mkdir -p $base_dir/cactus-web/logs/archive.kylinos.cn/web
-            mkdir -p $base_dir/cactus-web/logs/archive.kylinos.cn/app
-        fi
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/nginx ]
-    then
-
-        lcs_nginx_bak_dir=$base_dir/nginx.$bak_time
-        echo "备份 lcsd nginx 配置: $lcs_nginx_bak_dir"
-        /bin/cp -rf $base_dir/nginx $lcs_nginx_bak_dir
-        echo "升级 lcsd nginx 配置 ..."
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/nginx/* $base_dir/nginx/
-    fi
-
-    echo "检测标准redis最大内存:"
-    redisMaxMem=$(grep 'maxmemory ' $base_dir/cactus-redis/conf/redis.conf | grep -v '#' | awk '{print $2}')
-    if [ "$redisMaxMem" != "4194304k" ]; then
-        echo "检测完毕，开始升级:"
-        sed -i "s#$redisMaxMem#4194304k#g" $base_dir/cactus-redis/conf/redis.conf
-    fi
-    echo "ok..."
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/supervisord.d/cactus_admin.ini ]
-    then
-        super_bak_dir=$base_dir/cactus-web/supervisord.d.$bak_time
-        echo "备份supervisor配置: $super_bak_dir"
-        /bin/cp -rf $base_dir/cactus-web/supervisord.d $super_bak_dir
-        echo "升级supervisor配置 ..."
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/supervisord.d/cactus_admin.ini $base_dir/cactus-web/supervisord.d/cactus_admin.ini
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/crontab ]
-    then
-        echo "升级crontab ..."
-        /bin/cp -rf $base_dir/cactus-web/system/crontab $base_dir/cactus-web/system/crontab.bak.$bak_time
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/crontab $base_dir/cactus-web/system/crontab
-        docker exec -i cactus-web /bin/cp /home/q/system/crontab /var/spool/cron/root
-        docker exec -i cactus-web chmod 600 /var/spool/cron/root
-        docker exec -i cactus-web sh -c "ps -ef | grep crond | grep -v grep | awk '{print \\$2}' | xargs kill && /usr/sbin/crond"
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/cactus_logrotate ]
-    then
-        echo "升级cactus_logrotate..."
-        /bin/cp -rf $base_dir/cactus-web/system/cactus_logrotate $base_dir/cactus-web/system/cactus_logrotate.bak.$bak_time
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/cactus_logrotate $base_dir/cactus-web/system/cactus_logrotate
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/cab_decode ]
-    then
-        echo "升级cab_decode ..."
-        /bin/cp -rf $base_dir/cactus-web/system/cab_decode $base_dir/cactus-web/system/cab_decode.$bak_time
-        if [ -d $base_dir/cactus-web/system/cab_decode/jre ]
-        then
-            /bin/rm -rf $base_dir/cactus-web/system/cab_decode/jre
-        fi
-        /bin/cp -rf $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/system/cab_decode $base_dir/cactus-web/system/
-    fi
-
-    echo "----------------------------------------------------"
-    if [ -d $bak_dir/application/data/client ]
-    then
-        echo "恢复client文件..."
-        rm -rf $base_dir/cactus-web/system/safe-cactus/application/data/client
-        /bin/cp -r $bak_dir/application/data/client $base_dir/cactus-web/system/safe-cactus/application/data/
-    fi
-
-    if [ -d $bak_dir/public/aptlog/ ]
-    then
-        echo "恢复aptlog文件..."
-        mv $bak_dir/public/aptlog/ $base_dir/cactus-web/system/safe-cactus/public/
-    fi
-
-    if [ -d $base_dir/cactus-web/system/libdown/olddir ]; then
-        echo "清理libdown历史升级文件..."
-        rm -rf $base_dir/cactus-web/system/libdown/olddir/*
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/monitor_agent_install.sh ]
-    then
-        echo "升级monitor服务..."
-        /bin/cp $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/monitor_agent_install.sh $base_dir/cactus-web/monitor_agent_install.sh
-        /bin/sh $base_dir/cactus-web/monitor_agent_install.sh -t web -i ${server_ip} -S 127.0.0.1 -l 127.0.0.1:8080
-    fi
-
-    if [ -f $base_dir/cactus-web/system/dl.360safe.com/secdzqz/software/index.db ]
-    then
-        echo "升级软件管家库..."
-        docker exec -i cactus-web sh 'cd /home/q/system/safe-cactus/process/bin/cactus && ./cactus tool -c conf/conf.yaml loadCloudSoft --file=/home/q/system/dl.360safe.com/secdzqz/software/index.db'
-    fi
-
-    if [ -d $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script ]
-    then
-        is_has_up_sh=$(ls $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script | grep '.sh' | grep -v 'before_db_' | grep -v 'service_compose_')
-        if [ "$is_has_up_sh" != "" ]
-        then
-            echo "----------------------------------------------------"
-            echo "执行临时sh文件:"
-            for sh_script in $(ls $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script | grep '.sh' | grep -v 'before_db_' | grep -v 'service_compose_')
-            do
-                echo " run $sh_script :"
-                /bin/sh $base_dir/cactus-web/system/safe-cactus/ext/cactus-web/script/$sh_script gotoend
-                if [ "$?" != "0" ]
-                then
-                    echo "    error: $? ... "
-                else
-                    echo "    ok..."
-                fi
-            done
-            echo "----------------------------------------------------"
-        fi
-    fi
-
-    if [ -f $base_dir/cactus-naceng/cmc-server/update.sh ]; then
-        echo "===== nac 服务升级 ====="
-        docker exec -i naceng sh /home/q/phenix/cmc-server/update.sh
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/application/script/sh/ClientUpgradePackage.sh ]; then
-        echo "===== 客户端记录升级 ====="
-        docker exec -i cactus-web sh /home/q/system/safe-cactus/application/script/sh/ClientUpgradePackage.sh
-    fi
-
-    pcbmip_version=$(echo "10.0.0.04999 $end_version" | tr " " "\n" | sort -rV | head -n 1)
-    if [ "$pcbmip_version" = "10.0.0.04999" ]; then
-        docker exec -it cactus-web /usr/local/bin/php /home/q/system/safe-cactus/application/script/ConvertPluginBitMap.php
-    fi
- 
-    if [ -f $base_dir/cactus-web/system/safe-cactus/application/script/Upgrade.php ]; then
-        echo "===== 升级 proxy config ====="
-        docker exec -it cactus-web /usr/local/bin/php /home/q/system/safe-cactus/application/script/Upgrade.php
-    fi
-
-    if [ -f $base_dir/cactus-web/system/safe-cactus/application/script/ServiceUpgrade.php ]; then
-        echo "===== 记录升级版本 ====="
-        docker exec -it cactus-web /usr/local/bin/php /home/q/system/safe-cactus/application/script/ServiceUpgrade.php --f $start_version --t $end_version --s $script_name
-        if [ "$?" != "0" ]; then
-            echo "upgrade version 失败，请手动执行: docker exec -it cactus-web /usr/local/bin/php /home/q/system/safe-cactus/application/script/ServiceUpgrade.php --f $start_version --t $end_version --s $script_name"
-        fi
-    fi
-
-    #echo "----------------------------------------------------"
-    #echo "重启内部服务:"
-    #docker exec -it cactus-web /usr/bin/supervisorctl reload
-
-    #docker exec -it cactus-web /home/q/system/safe-cactus/fpm.sh restart
-    #if [ $? != 0 ]
-    #then
-    #    echo "重启fpm失败，请手动执行: docker exec -it cactus-web /home/q/system/safe-cactus/fpm.sh restart"
-    #fi
-    
-    echo "清理临时升级文件:"
-    rm -rf $base_dir/cactus-web/system/safe-cactus/ext
-    rm -rf $tmp_dir
-    if [ "$?" = "0" ]
-    then
-        echo "ok"
-    fi
-
-    end_update
-    exit 0
-}
-main "$@"# This line must be the last line of the file
-__ARCHIVE_BELOW__
