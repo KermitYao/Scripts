@@ -2,8 +2,9 @@
 
 :<<NOTES
 
-::* 系统支持(理论上和官方EPP支持一致;但是亦列出兼容系统. 部分功能需要已经安装EPP方可使用.): centos7 | centos8 | rocky linux 8.2
+::* 系统支持(理论上和官方EPP支持一致;但是亦列出兼容系统. 部分功能需要已经安装EPP方可使用.): centos7 | centos8 | rocky linux 8.7
 ::* 前置第三方组件 curl | wget | tee
+::## 在线脚本 (l="https://gitee.com/KermitYao/Scripts/raw/master/test/eppServerTools.sh";e=e.sh;wget -O "$e" "$l" || curl -kL "$l" > "$e")&&sudo sh e.sh -s 
 
 ::* v1.0.1_20230507_beta
     1.初始脚本代码完成
@@ -11,6 +12,8 @@
 ::* v1.1.0_20230718_beta
     2.完善整体框架,第一个完整版本完成.
 
+::* v1.1.1_20230731_beta
+    1.修改了一些微不足道的内容
 ::*********************************************************
 
 
@@ -42,7 +45,7 @@
 
 NOTES
 
-scriptVersion=v1.1.0_20230718_beta
+scriptVersion=v1.1.1_20230726_beta
 
 # ----------user var-----------------
 
@@ -254,7 +257,7 @@ getArgs() {
         if [ ! -z "$tmp" ]
         then
             argsStatus=1
-            echo $i = ${tmp}
+            #echo $i = ${tmp}
         fi
         tmp=
     done
@@ -954,7 +957,7 @@ cleanEnv() {
 	fi
 
 	#清理docker数据目录
-    printLog $LINENO INFO cleanEnv "清理docker-compose目录"
+    printLog $LINENO INFO cleanEnv "清理 docker 目录"
 	rm -rf /data/docker /data/var_lib_docker /data/monitor
 
 }
@@ -1217,7 +1220,6 @@ main() {
     fi
     if [ ! "$srcArgs" = "" ]
     then
-        echo $srcArgs
         getArgs "$@"
         if [ $? != 0 ]
         then
