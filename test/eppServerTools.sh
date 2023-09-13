@@ -14,6 +14,12 @@
 
 ::* v1.1.1_20230731_beta
     1.修改了一些微不足道的内容
+
+::* v1.2.1_20230913_beta
+    1.修复 在未安装epp的情况下升级报错问题
+    2.更新 将环境清理从之间的删除docker容器和镜像修改为通过docker-compose down 方式清理
+
+
 ::*********************************************************
 
 
@@ -45,7 +51,7 @@
 
 NOTES
 
-scriptVersion=v1.1.1_20230726_beta
+scriptVersion=v1.2.1_20230913_beta
 
 # ----------user var-----------------
 
@@ -833,6 +839,11 @@ upgradeVersion() {
 
 upgradeVersionNext() {
     getInstStatus
+    if [ $instStatus == False ]
+    then
+        printLog $LINENO INFO versionNext "未安装EPP控制台,或已损坏."
+        return 1
+    fi
     nowVersionFull=${nowVersion//./}
     getCodeArry "${updateUrlPath}/${codeInfoName}" "${tempPath}/update_${codeInfoName}"
     if [ $? -eq 0 ]
@@ -924,6 +935,7 @@ cleanEnv() {
 	command -v docker >/dev/null
 	if [ $? -eq 0 ]
 	then
+:<<NOTES
         printLog $LINENO INFO cleanEnv "清理 docker 容器"
 		containerList=$(docker container ls -aq)
 		if [ -n "$containerList" ]
@@ -943,23 +955,27 @@ cleanEnv() {
         printLog $LINENO INFO cleanEnv "卸载docker组件"
 		systemctl stop docker
 		rpm -e $(rpm -qa docker*)
+NOTES
+
+        #清理docker-compose目录
+        printLog $LINENO INFO cleanEnv "清理docker-compose容器"
+        dockerComposePath="/home/s"
+        if [ -f $dockerComposePath/lcsd/docker-compose.yml ]
+        then
+            docker-compose -f $dockerComposePath/lcsd/docker-compose.yml down
+            sleep 1
+            rm -rf $dockerComposePath
+        fi
 	else
 		echo docker 未安装
         printLog $LINENO WARNING cleanEnv "docker 未安装"
 	fi
 
-	#清理docker-compose目录
-    printLog $LINENO INFO cleanEnv "清理docker-compose目录"
-	dockerComposePath="/home/s"
-	if [ -d $dockerComposePath ]
-	then
-		rm -rf $dockerComposePath
-	fi
 
 	#清理docker数据目录
     printLog $LINENO INFO cleanEnv "清理 docker 目录"
-	rm -rf /data/docker /data/var_lib_docker /data/monitor
-
+	#rm -rf /data/docker /data/var_lib_docker /data/monitor
+    rm -rf /data/docker /data/monitor
 }
 
 execSql() {
@@ -1510,10 +1526,9 @@ main() {
                 echo
                 echo 此操作将会删除以下内容:
                 echo
-                echo "    1.删除所有docker容器"
-                echo "    2.删除所有docker镜像"
-                echo "    3.卸载掉所有docker开头的安装包 (rpm -qa docker*)"
-                echo "    4.删除 /home/s, /data/docker, /data/var_lib/docker, /data/mointor"
+                echo "    1.删除所有docker-compose包含的容器"
+                echo "    2.卸载掉所有docker开头的安装包 (rpm -qa docker*)"
+                echo "    3.删除 /home/s, /data/docker, /data/mointor"
                 echo
                 printf '\33[5m \33[33m以上操作无法恢复,如果您不知道会造成什么后果,请立即退出!!!\033[0m\n'
                 echo
