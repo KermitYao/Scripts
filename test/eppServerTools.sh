@@ -19,6 +19,10 @@
     1.修复 在未安装epp的情况下升级报错问题
     2.更新 将环境清理从之间的删除docker容器和镜像修改为通过docker-compose down 方式清理
 
+::* v1.2.1_20231106_beta
+    1.更新 删除一个容器判断内容，此内容会导致老版本和新版本安装状态获取异常
+
+
 
 ::*********************************************************
 
@@ -587,7 +591,7 @@ getInstStatus() {
     command -v docker >/dev/null||instStatus=False
     command -v docker-compose >/dev/null||instStatus=False
     test -f $baseDir/cactus-web/system/safe-cactus/version||instStatus=False
-    filterContainerList="cactus-nginx lcsd-nginx-1 cactus-web mysql cactus-newtransserver"
+    filterContainerList="cactus-nginx lcsd-nginx-1 cactus-web mysql"
     if [ "$instStatus" == "False" ]
     then
         return 1
