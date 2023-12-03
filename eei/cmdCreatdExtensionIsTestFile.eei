@@ -26,6 +26,11 @@
             </operation>
         </operations>
     </definition>
+    <!-- 执动作 -->
+    <actions>
+        <action name="MarkAsScript" />
+    </actions>
+        <!--危险分数 [1-39>信息，40-79>警告，80-100>威胁]-->
     <!--描述-->
     <description>
         <!--规则名称-->
@@ -43,10 +48,7 @@
         <benignCauses>可能是良性的，用户可以通过cmd/powershell批量删除不需要的文件</benignCauses>
         <!--建议采取的操作-->
         <recommendedActions>查找动作原因。</recommendedActions>
-        <actions>
-            <action name="MarkAsScript" />
-        </actions>
-        <!--危险分数 [1-39>信息，40-79>警告，80-100>威胁]-->
+
         <severity>40</severity>
     </description>
 </rule>

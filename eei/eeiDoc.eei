@@ -24,67 +24,67 @@ EEI RULE 主要分三部分body
         <maliciousCauses>可能是恶意的，因为有些恶意软件会通过cmd执行删除操作</maliciousCauses>
         <!--描述良性原因-->
         <benignCauses>可能是良性的，用户可以通过cmd批量删除不需要的文件</benignCauses>
-        <!--建议采取的操作-->&gt;
+        <!--建议采取的操作-->;
             <recommendedActions>查找动作原因。</recommendedActions>
         <actions>
             <action name="MarkAsScript" />
         </actions>
-            <!--危险分数 [1-39>信息，40-79>警告，80-100>威胁]-->&gt;
+            <!--危险分数 [1-39>信息，40-79>警告，80-100>威胁]-->;
             <severity>40</severity>
     </description>
 
-
-    <!-- 定义操作的部分 -->
-    <operations type="AND">
-        <!--
-        可以有多个操作类型
-        操作类型，有:
-        CreateProcess - 创建了一个进程
-        DeleteFile - 删除了一个文件
-        ReadDeleteKey - 删除了一个注册表
-        详细的操作类型列表请看官方文档。
-        -->
-        <operation type="DeleteFile">
-
-            <!--具体的操作;支持逻辑运算[and|or|not],可以嵌套例如：-->
-            <operator type="OR">
-                <operator type="AND">
-                    <!--用于匹配的具体动作-->
-
-                    <!-- 
-                    动作的组件：
-                    component:[FileItem|WriteFile|DeleteFile]具体请参考官方文档 -->
-
-                    动作的属性，根据返回的文件信息有不同的属性：
-                    property:[FileNameWithoutExtension|Path|FullPath|FileName]具体请参考官方文档
-
-                    动作的类型，根据返回的文件信息有不同的类型：
-                    property:[FileNameWithoutExtension|Path|FullPath|FileName]具体请参考官方文档
-
-                    属性的类型，根据返回的信息类型有不同的属性：
-                    condition:[is|isnot|]具体请参考官方文档。
-
-                    属性的值，比如如果 property="FileNameWithoutExtension" 那么值就是无扩展名的文件名,比如 d:\test\tes.txt, 则 value=test
-                    -->
-                    <condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="windows" />
-                </operator>
-            </operator>
-        </operation>
-    <operations>
-
-
-    <!-- 定义进程的部分 -->
-    <!-- 可以使用父进程，在当前进程之前的进程都叫父进程，可以定义父进程的长度 -->
-        进程可以和 operations 一样使用逻辑表达式和嵌套
-    <parentprocess>
-        <Condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="rundll32" />
-    </parentprocess>
-
-    <process>
-        <operator type="AND">
+    <definition>
+        <!-- 定义进程的部分 -->
+        <!-- 可以使用父进程，在当前进程之前的进程都叫父进程，可以定义父进程的长度 -->
+            进程可以和 operations 一样使用逻辑表达式和嵌套
+        <parentprocess>
             <Condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="rundll32" />
-        </operator>
-    </process>
+        </parentprocess>
+
+        <process>
+            <operator type="AND">
+                <Condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="rundll32" />
+            </operator>
+        </process>
+
+        <!-- 定义操作的部分 -->
+        <operations type="AND">
+            <!--
+            可以有多个操作类型
+            操作类型，有:
+            CreateProcess - 创建了一个进程
+            DeleteFile - 删除了一个文件
+            ReadDeleteKey - 删除了一个注册表
+            详细的操作类型列表请看官方文档。
+            -->
+            <operation type="DeleteFile">
+
+                <!--具体的操作;支持逻辑运算[and|or|not],可以嵌套例如：-->
+                <operator type="OR">
+                    <operator type="AND">
+                        <!--用于匹配的具体动作-->
+
+                        <!-- 
+                        动作的组件：
+                        component:[FileItem|WriteFile|DeleteFile]具体请参考官方文档 -->
+
+                        动作的属性，根据返回的文件信息有不同的属性：
+                        property:[FileNameWithoutExtension|Path|FullPath|FileName]具体请参考官方文档
+
+                        动作的类型，根据返回的文件信息有不同的类型：
+                        property:[FileNameWithoutExtension|Path|FullPath|FileName]具体请参考官方文档
+
+                        属性的类型，根据返回的信息类型有不同的属性：
+                        condition:[is|isnot|]具体请参考官方文档。
+
+                        属性的值，比如如果 property="FileNameWithoutExtension" 那么值就是无扩展名的文件名,比如 d:\test\tes.txt, 则 value=test
+                        -->
+                        <condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="windows" />
+                    </operator>
+                </operator>
+            </operation>
+        <operations>
+    </definition>
 
     <!-- 定义要做什么
         比如检测到对应的文件后，将此加入到hash阻止列表
