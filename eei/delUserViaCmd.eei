@@ -10,7 +10,7 @@ EEI RULE 主要分三部分body
     <!--描述-->
     <description>
         <!--规则名称-->
-        <name>查找被CMD删除的动作</name>
+        <name>创建了一个用户test</name>
         <!--动作类别-->
         <category>cmd 删除</category>
         <!--解释可能的原因-->
@@ -31,14 +31,7 @@ EEI RULE 主要分三部分body
         <!-- 定义进程的部分 -->
         <!-- 可以使用父进程，在当前进程之前的进程都叫父进程，可以定义父进程的长度 -->
         <!-- 进程可以和 operations 一样使用逻辑表达式和嵌套 -->
-        <parentprocess>
-            <Condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="powershell" />
-        </parentprocess>
-        <process>
-            <operator type="AND">
-                <Condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="cmd" />
-            </operator>
-        </process>
+        <parentprocess />
         <!-- 定义操作的部分 -->
         <operations>
             <!--
@@ -49,7 +42,7 @@ EEI RULE 主要分三部分body
             ReadDeleteKey - 删除了一个注册表
             详细的操作类型列表请看官方文档。
             -->
-            <operation type="DeleteFile">
+            <operation type="UserCreate">
                 <!--具体的操作;支持逻辑运算[and|or|not],可以嵌套例如：-->
                 <operator type="OR">
                     <operator type="AND">
@@ -69,7 +62,7 @@ EEI RULE 主要分三部分body
 
                         属性的值，比如如果 property="FileNameWithoutExtension" 那么值就是无扩展名的文件名,比如 d:\test\tes.txt, 则 value=test
                         -->
-                        <condition component="FileItem" property="FileNameWithoutExtension" condition="is" value="test6" />
+                        <condition component="TargetUser" property="UserName" condition="contains" value="test" />
                     </operator>
                 </operator>
             </operation>
