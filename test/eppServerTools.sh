@@ -1220,7 +1220,7 @@ printStatus() {
 		releaseVersion=$(cat /etc/os-release |grep '^ID='|awk -F= '{print $2}'&&cat /etc/os-release |grep '^VERSION_ID='|awk -F= '{print $2}')
         releaseVersion=$(echo $releaseVersion|sed 's/\n//g')
 	fi
-    echo "  发行版本: ${releaseVersion//'"'}"
+    echo   发行版本: ${releaseVersion//'"'} 
     echo 内核安装信息:
     for i in $($searchCommand *kernel*)
     do

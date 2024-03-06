@@ -6,16 +6,18 @@
 ::20181229,v1.4,添加对还原操作的支持(直接拖入对应的备份文件到此文件上即可。   dbBackup.cmd x:\x\backupfile.??bak),调整代码逻辑.
 ::20190218,v1.4.1,对single文件还原时，先备份原有文件。
 ::20191227,v1.5 修复添加到自动启动无效的bug,增加密码有特殊字符串的支持, 修复mysql非标准端口的设置不起作用的bug。
+::20191227,v1.5 修复添加到自动启动无效的bug,增加密码有特殊字符串的支持, 修复mysql非标准端口的设置不起作用的bug。
+::20240306,v1.6 修复mssql非默认端口的支持
 ::基本原理为 batch 组织逻辑关系,数据库命令执行实际操作,若本机并未安装实体命令行工具即会备份失效（single类型的数据库例外,因为是直接COPY）。
 
-@set V=v1.4.5
+@set V=v1.6
 @echo off
 setlocal enabledelayedexpansion
 title Backup Tools    ver:%V%
 
 ::-----------------------user var-------------------------
 ::备份目录
-set fs=d:\Backup
+set fs=c:\Backup
 ::是否备份到U盘，为True则备份目录指向第一个被检测到的U盘;若U盘不存在则备份目录不做改变。
 
 set fsu=False
@@ -23,21 +25,21 @@ set fsu=False
 set dbtype=0
 
 ::数据库地址
-set dbaddr="127.0.0.1"
+set dbaddr=127.0.0.1
 
 ::数据库账号
-set dbuser="sa"
+set dbuser="era_user"
 
 ::数据库密码
-set dbpw="eset1234."
+set dbpw="^P*x'$01v3L8MPlS"
 
 ::数据库端口,仅 mysql 数据库起作用。
-set dbport=3306
+set dbport=14222
 
 ::需要备份库的关键字,模糊匹配,不分大小写,可以是多个,以[,]分割;为 [.] 不进行筛选(即备份所有数据库).
 ::如果数据库为single(单文件),则此参数应为 文件的完整路径.
 ::若为还原模式,必须是完整的数据库名
-set dbkeyys=.
+set dbkeyys=era_db
 ::set dbkeyys="d:\xygl\fda\laundry.btf"
 
 ::需要过滤库的关键字,模糊匹配,不分大小写,可以是多个,以[,]分割;为 [!@#$%] 不进行筛选.（single此项失效）
@@ -55,7 +57,7 @@ if "%msFilePath%"=="" (
 )
 
 ::冗余间隔天数,自动删除N天之前的旧备份；0 为不启用循环删除
-set ld=10
+set ld=60
 ::是否自启动,若为 [True] 则设置自启动,启动规则见 [st]
 set ar=False
 ::自动添加计划任务 (11:11 代表每天的 11点11分开始备份)，若为 [auto] 则添加开机自启动。
@@ -119,22 +121,21 @@ echo 初始化配置.
 
 ::测试mssql命令行是否可用。
 if %dbtype% equ 0 (
-	for /f "delims= skip=2 eol=(" %%a in ('sqlcmd -S %dbaddr% -U%dbuser% -P%dbpw% -Q "select name from sysdatabases"2^>nul') do (
+	for /f "delims= skip=2 eol=(" %%a in ('sqlcmd -S %dbaddr%^,%dbport% -U%dbuser% -P%dbpw% -Q "select name from sysdatabases" ') do (
 		set test=%%a
 	)
 )
 
 ::测试mysql命令行是否可用。
 if %dbtype% equ 1 (
-	for /f "delims=" %%a in ('mysql -h %dbaddr% -P%dbport% -u%dbuser% -p%dbpw% -se "show databases;"2^>nul') do (
+	for /f "delims=" %%a in ('mysql -h %dbaddr% -P%dbport% -u%dbuser% -p%dbpw% -se "show databases;"') do (
 		set test=%%a
 	)
 )
-cls
+
 ::测试备份目录是否存在
 if not exist %fs%\ (
 	echo 目录错误 >>%pro%
-	cls
 	echo 目录错误.
 	ping /n 5 127.1 >nul
 	exit /b 1
@@ -144,7 +145,6 @@ if not exist %fs%\ (
 if "%test%"=="Single" (
 	if not %dbtype% equ 2 (
 		echo 配置错误. >>%pro%
-		cls
 		echo 配置错误.
 		ping /n 5 127.1 >nul
 		exit /b 2
@@ -152,7 +152,6 @@ if "%test%"=="Single" (
 		if not exist %dbkeyys% (
 			if not exist "%~1" (
 				echo 数据库错误. >>%pro%
-				cls
 				echo 数据库错误
 				ping /n 5 127.1 >nul
 				exit /b 3
@@ -226,12 +225,12 @@ goto :eof
 
 ::mssql 备份
 :getMssqlBackup
-for /f "eol=(" %%a in ('sqlcmd -S %dbaddr% -U %dbuser% -P %dbpw% -Q "select name from sysdatabases"^|findstr /i /r %dbkeyy%^|findstr /i /v /r %dbkeyn%') do (
+for /f "eol=(" %%a in ('sqlcmd -S %dbaddr%^,%dbport% -U %dbuser% -P %dbpw% -Q "select name from sysdatabases"^|findstr /i /r %dbkeyy%^|findstr /i /v /r %dbkeyn%') do (
 	echo 处理数据库: [%%a]
 	echo 处理数据库: [%%a] >>%pro%
 	md %fs%\%%a\ >>%pro% 2>&1
 	(echo backup database %%a to disk = '%fs%\%%a\%back_timename%_%%a.%msext%')>%temp%\n.sql
-	sqlcmd -S %dbaddr% -U %dbuser% -P %dbpw% -i %temp%\n.sql >>%pro% 2>&1
+	sqlcmd -S %dbaddr%^,%dbport% -U %dbuser% -P %dbpw% -i %temp%\n.sql >>%pro% 2>&1
 	echo [ok] Backup databases -- full [%%a]
 )
 goto :eof
@@ -275,7 +274,7 @@ echo 处理备份文件: [%backupPath%]
 
 set logicState=False
 set num=0
-for /f "skip=2 tokens=1,2" %%a in ('sqlcmd -s 127.0.0.1 -Usa -Pbetterlife -Q "restore filelistonly from disk='%backupPath%'"') do (
+for /f "skip=2 tokens=1,2" %%a in ('sqlcmd  -S %dbaddr%^,%dbport% -Usa -Pbetterlife -Q "restore filelistonly from disk='%backupPath%'"') do (
 	set /a num+=1
 	set logicName_!num!=%%a
 )
@@ -295,7 +294,7 @@ if "!logicState!"=="False" (
 )
 
 echo\
-sqlcmd -S %dbaddr% -U %dbuser% -P %dbpw% -i %temp%\n.sql >%temp%\tmp.error&&type %temp%\tmp.error&&type %temp%\tmp.error >>%pro% 2>&1
+sqlcmd  -S %dbaddr%,%dbport% -U %dbuser% -P %dbpw% -i %temp%\n.sql >%temp%\tmp.error&&type %temp%\tmp.error&&type %temp%\tmp.error >>%pro% 2>&1
 echo\
 
 
