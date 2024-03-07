@@ -22,7 +22,8 @@
 ::* v1.2.1_20231106_beta
     1.更新 删除一个容器判断内容，此内容会导致老版本和新版本安装状态获取异常
 
-
+::* v1.2.2_20240307_beta
+    1.更新 优化了清理环境时，删除docker目录的速度；通过find /data/docker -type f delete 替换了  rf -rf /data/docker
 
 ::*********************************************************
 
@@ -55,7 +56,7 @@
 
 NOTES
 
-scriptVersion=v1.2.1_20230913_beta
+scriptVersion=v1.2.2_20240307_beta
 
 # ----------user var-----------------
 
@@ -939,7 +940,16 @@ cleanEnv() {
 	command -v docker >/dev/null
 	if [ $? -eq 0 ]
 	then
-:<<NOTES
+        #清理docker-compose目录
+        printLog $LINENO INFO cleanEnv "清理docker-compose容器"
+        dockerComposePath="/home/s"
+        if [ -f $dockerComposePath/lcsd/docker-compose.yml ]
+        then
+            docker-compose -f $dockerComposePath/lcsd/docker-compose.yml down
+            sleep 1
+            rm -rf $dockerComposePath
+        fi
+
         printLog $LINENO INFO cleanEnv "清理 docker 容器"
 		containerList=$(docker container ls -aq)
 		if [ -n "$containerList" ]
@@ -959,27 +969,15 @@ cleanEnv() {
         printLog $LINENO INFO cleanEnv "卸载docker组件"
 		systemctl stop docker
 		rpm -e $(rpm -qa docker*)
-NOTES
-
-        #清理docker-compose目录
-        printLog $LINENO INFO cleanEnv "清理docker-compose容器"
-        dockerComposePath="/home/s"
-        if [ -f $dockerComposePath/lcsd/docker-compose.yml ]
-        then
-            docker-compose -f $dockerComposePath/lcsd/docker-compose.yml down
-            sleep 1
-            rm -rf $dockerComposePath
-        fi
 	else
 		echo docker 未安装
         printLog $LINENO WARNING cleanEnv "docker 未安装"
 	fi
 
-
 	#清理docker数据目录
     printLog $LINENO INFO cleanEnv "清理 docker 目录"
-	#rm -rf /data/docker /data/var_lib_docker /data/monitor
-    rm -rf /data/docker /data/monitor
+    test -d /data/docker/ && find /data/docker -type f  -delete
+    rm -rf /etc/docker /run/docker /var/lib/dockershim /var/lib/docker /data/docker /data/var_lib_docker /data/monitor
 }
 
 execSql() {
