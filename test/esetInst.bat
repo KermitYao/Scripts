@@ -1277,15 +1277,9 @@ goto :eof
 
 rem 获取UAC状态; 传入参数: 无参数传入 ; 例：call :getUac ; 返回值: returnValue=True | False | Null
 :getUac
-set uacStatus=
+set uacStatus=True
 set returnValue=
-(echo u >%windir%\u.tmp)2>nul
-if not exist %windir%\u.tmp (
-	set uacStatus=False
-) else (
-	set uacStatus=True
-	del /f %windir%\u.tmp 2>nul
-)
+Net session >nul 2>&1 ||set uacStatus=False
 
 if "#"=="#!uacStatus!" (
 	set returnValue=Null
