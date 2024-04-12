@@ -1,4 +1,5 @@
 1>1/* ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+Net session >nul 2>&1 || (echo Start-Process  -FilePath %~fs0   -verb  runas | powershell - &exit)
 
 goto :begin
 ::* 此脚本可以自动安装360epp客户端,主要用于批量安装、域控等自动安装场景
