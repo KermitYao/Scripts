@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 #Backup files to remote server
-from genericpath import isfile
-from posixpath import relpath
 import paramiko,os,sys,time
 import socket
 
