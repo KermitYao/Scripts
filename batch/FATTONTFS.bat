@@ -1,4 +1,5 @@
 @echo off
+Net session >nul 2>&1 || (echo Start-Process  -FilePath %~fs0   -verb  runas | powershell - &exit)
 setlocal enabledelayedexpansion
 mode con: cols=60 lines=23
 color 6f

@@ -1,5 +1,8 @@
+
 ::rem Version is v1.1 , The code by kermit.yao to writen in Windows 10 system.
+
 @echo off
+Net session >nul 2>&1 || (echo Start-Process  -FilePath %~fs0   -verb  runas | powershell - &exit)
 setlocal enabledelayedexpansion
 title Windows ÏµÁÐ¼¤»î.
 

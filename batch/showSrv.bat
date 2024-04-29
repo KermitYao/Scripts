@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-set srv="EraAgentSvc" "ekrn" "EIConnectorSvc" "ManageEngine AssetExplorer Agent" "INODE_SVR_SERVICE" "CGEDataService" 
+set srv="EraAgentSvc" "ekrn" "EIConnectorSvc"  "INODE_SVR_SERVICE" "CGEDataService" 
 set flag=NO
 pushd %temp%
 for %%a in (%srv%) do (
@@ -8,16 +8,12 @@ for %%a in (%srv%) do (
 		sc query %%x >nul&&set flag=YES||set flag=NO
 		if !flag!==NO (
 			set /p=%%x--%%y--<nul
-			>"NO" echo.
-			findstr /a:04 .* "NO*"
-			echo\
-			del /q/f NO
+			echo.NO
+
 		) else (
 			set /p=%%x--%%y--<nul
-			>"YES" echo.
-			findstr /a:09 .* "YES*"
-			del /q/f YES
-			echo\
+			echo.YES
+
 		)
 	)
 )
