@@ -910,7 +910,7 @@ upgradeVersionNext() {
                     then
                         printLog $LINENO INFO versionNext "MD5对比一致,文件下载正常"
                         printLog $LINENO INFO versionNext "开始升级版本..."
-                        echo ${tmpCode}|sh ${tempPath}/$tmpName | tee -a "${logPath}"
+                        sed -i "1,$(awk '/^__ARCHIVE_BELOW__/ {print NR; exit 0;}' ${tempPath}/$tmpName) s/read -r code/code=${tmpCode}/g" ${tempPath}/$tmpName && sh ${tempPath}/$tmpName | tee -a "${logPath}"
                         getInstStatus
                         nowVersionFull=${nowVersion//./}
                         if [ "${nowVersionFull}" -eq "$endVersionFull" ]
