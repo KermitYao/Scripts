@@ -32,6 +32,21 @@ def formatTime(times,type=1):
         return m
     return None
 
+def save_mail(msg=None,count=2):
+    strftime = time.strftime('%Y-%m-%d')
+    with open(os.path.join(sys.path[0], 'sendMail.dat'), 'r+') as f:
+        send_count = str(f.readlines()).count(strftime)
+        if send_count == 0:
+            f.truncate()
+            f.writelines
+            f.write(strftime + ' ' + msg + '\n')
+            return True
+        elif send_count<count:
+            f.write(strftime + ' ' + msg + '\n')
+            return True
+        else:
+            return False
+    True
 
 def logWrite(errorType, codeLine, message):
     logLevel = 'INFO'
@@ -95,10 +110,11 @@ def main():
         else:
             logWrite('WARNING', sys._getframe().f_lineno, '服务器:%s 运行异常' % url)
             msg = url+' 无法访问,请尽快处理' + '\nname:' + localhostname + '\n时间: ' + formatTime(time.time()) + '\nIP: ' + socket.gethostbyname(localhostname)
-            if sendMail('714580117@qq.com', 'jfbyhvwwtaxrbefj', 'kermit.yao@qq.com', 'smtp.qq.com', msg):
-                logWrite('INFO', sys._getframe().f_lineno, '邮件发送正常')
-            else:
-                logWrite('WARNING', sys._getframe().f_lineno, '邮件发送异常')
+            if save_mail(msg,3):
+                if sendMail('714580117@qq.com', 'jfbyhvwwtaxrbefj', 'kermit.yao@qq.com', 'smtp.qq.com', msg):
+                    logWrite('INFO', sys._getframe().f_lineno, '邮件发送正常')
+                else:
+                    logWrite('WARNING', sys._getframe().f_lineno, '邮件发送异常')
     return True
 
 if __name__ == '__main__':
