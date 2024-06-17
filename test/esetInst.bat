@@ -50,7 +50,7 @@ goto :begin
 	1.修复 2008 已经无法支持最新版本,通过指定 9.0 版本解决。
 	
 ::* v2.1.0_20240218_alpha
-	1.新增 支持ACS补丁的自动判断和安装;与sha补丁基础在一起
+	1.新增 支持ACS补丁的自动判断和安装;与sha补丁集成在一起
 	2.新增 现在支持指定参数来开启管理员请求权限了(GUI界面默认开启,CLI需要手动指定参数)
 	3.更新 重构部分代码,现在可以根据bulidNumber安装不同的软件版本,修正判断逻辑,减少代码量。应对经常变化的版本
 	4.更新 移除了对xp等6.5版本的支持,eset官方已不在对其进行支持
@@ -60,10 +60,15 @@ goto :begin
 ::* v2.1.1_20240220_alpha
 	1.优化日志输出
 	2.梳理代码逻辑
+
+::* v2.1.2_20240617_beta
+	1.修复-a参数,如有未安装补丁、或补丁需用重启时不会自动跳过后续下载安装的问题
+
+
 ::-----readme-----
 
 快速使用:
-	修改145行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
+	修改155行开始,设置每个版本文件的下载地址,然后双击打开脚本输入 a 开始自动安装
 
 概述:
 	此脚本目的为简化用户安装时的过程,能实现一件自动化安装补丁和eset产品,以及对于已经安装的计算机自动升级或跳过,同时增加了一些排错常用的的功能,用于帮助客户快速方便的诊断问题根源。
@@ -80,27 +85,27 @@ goto :begin
 
 使用方法：
 	1.需要提前预设每个版本文件的下载地址或者本地的文件路径(可以使用相对路径,这样可以放到u盘里安装)
-		具体是通过下载安装，或是本地文件安装，可以通过一个参数控制 absStatus=True 
+		具体是通过下载安装，或是本地文件安装
 	2.可以使用参数 -h | -help 来查看支持的参数
 	3.如果需要实现双击自动安装,可以设置 DEFAULT_ARGS, 例如: DEFAULT_ARGS= -a -s -u , 表示自动安装补丁、agent、杀毒产品,并且会显示出安装的状态,然后停留等待
 	4.
 		set version_Agent=11
 		set version_Product_eea=11
-		set version_Product_efsw=10
+		set version_Product_efsw=11
 		以上三个参数标识了最新的版本,一般版本号和安装文件的版本保持一致.
 		当计算机已经存在一个杀毒软件,如果低于以上版本则会自动升级,如果高于则跳过安装,如果计算机没有安装过杀毒软件则预设版本号为0
 	5.本质上软件的安装是通过调用 msiexec 实现的,所以如果想自定义参数可以通过此参数实现: set "params_agent= password=eset1234." ,会指定一个密码,当然也可以用别的参数,比如指定安装时的语言，可以写入多个参数，以空格隔开即可
 	6. 这个参数 set path_agent_config 指定的文件,来自于gpo配置文件,这个文件和agent安装程序放在同一个目录,安装的时候就可以不用手动填写证书、密码等之类的东西，可以通过eset控制台生成
 	7.脚本的运行需要管理员权限
 	8.命令行参数不区分大小写
-	9.安装的时候脚本会自动检测需要下载的对应版本,不会多下载的,所以如果没有 xp 系统,完全可以不填写 6.5 的文件下载地址;这样并不会影响使用
+	9.安装的时候脚本会自动检测需要下载(%temp%\esetInst)的对应版本,不会多下载的,所以如果没有 xp 系统,完全可以不填写 6.5 的文件下载地址;这样并不会影响使用
 	10.想到了再写
 
 :begin
 ::-----readme-----
 
 cls
-@set version=v2.1.1_20240220_alpha
+@set version=v2.1.2_20240617_beta
 @echo off
 setlocal enabledelayedexpansion
 
@@ -129,7 +134,7 @@ rem 已安装的软件版本如果小于此本版则进行覆盖安装,否则不进行安装(升级)
 rem 版本号只计算两位，超过两位数会计算出错。
 set version_Agent=11.0
 set version_Product_eea=11.0
-set version_Product_efsw=10.0
+set version_Product_efsw=11.0
 rem -------------------
 
 rem 如果路径为UNC或可访问路径则不需要下载到本地,将直接调用安装；否则会下载到临时目录在使用绝对路径方式调用
@@ -285,7 +290,7 @@ if "#%argsEntrySafeMode%"=="#True" (
 			set exitCode=2
 		)
 	) else (
-		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
 	)
 )
@@ -308,7 +313,7 @@ if "#%argsexitSafeMode%"=="#True" (
 			set exitCode=2
 		)
 	) else (
-		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
 	)	
 )
@@ -329,7 +334,7 @@ if "#%argsAvUninst%"=="#True" (
 			) 
 		)
 	) else (
-		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
 	)		
 )
@@ -345,12 +350,12 @@ if "#%argsUndoAgent%"=="#True" (
 			call :writeLog INFO removeAgent "开始卸载 [!productName!]" True True
 			call :uninstallProduct "!productCode!" "%params_msiexec%" "%params_agent%"
 			call :writeLog DEBUG removeAgent "[!productName!] 卸载退出码:[!errorlevel!]" False True
-			call :writeLog INFO removeAgent "[!productName!] 卸载状态是:[!returnValue!]" True True
-			if "#!returnValue!"=="#False" (call :writeLog ERROR removeAgent "[!productName!] 卸载状态是:[失败],请检查安装状态或联系管理员" True True)
+			call :writeLog INFO removeAgent "[!productName!] 卸载状态:[!returnValue!]" True True
+			if "#!returnValue!"=="#False" (call :writeLog ERROR removeAgent "[!productName!] 卸载状态:[失败],请检查安装状态或联系管理员" True True)
 		)
 		if "#!returnValue!"=="#False" (set exitCode=7) else (set exitCode=0)
 	) else (
-		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
 	)		
 )
@@ -366,24 +371,25 @@ if "#%argsUndoProduct%"=="#True" (
 			call :writeLog INFO removeProduct "开始卸载 [!productName!]" True True
 			call :uninstallProduct "!productCode!" "%params_msiexec%" "%params_agent%"
 			call :writeLog DEBUG removeProduct "[!productName!] 卸载退出码:[!errorlevel!]" False True
-			call :writeLog INFO removeProduct "[!productName!] 卸载状态是:[!returnValue!]" True True
-			if "#!msiexecExitCode!"=="#3010" (call :writeLog WARNING removeProduct "这个软件 [!productName!] 卸载状态是:[挂起],你需要重启以完成卸载" True True)
+			call :writeLog INFO removeProduct "[!productName!] 卸载状态:[!returnValue!]" True True
+			if "#!msiexecExitCode!"=="#3010" (call :writeLog WARNING removeProduct " [!productName!] 卸载状态:[挂起],你需要重启以完成卸载" True True)
 		)
 		if "#!returnValue!"=="#False" (set exitCode=8) else (set exitCode=0)
 	) else (
-		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
 	)		
 )
 
 rem 安装补丁
 if "#%argsHotfix%"=="#True" (
+	set hotFixFlag=False
 	call :writeLog INFO instHotfix "开始处理补丁" True True
 	if "#!uacStatus!"=="#True" (
 		call :hotfixKey
 		if %ntVerNumber% lss 7601 (
 			call :writeLog WARNING instHotfix "版本小于:win7sp1/7601 将无法安装SHA-2补丁,建议升级系统到最新" True True
-			goto :hotfixSkip
+			goto :esetSkip
 		)
 		if %ntVerNumber% geq 19044 (
 			call :writeLog INFO instHotfix "版本大于:21H2/19044 无需安装ACS补丁" True True
@@ -400,14 +406,29 @@ if "#%argsHotfix%"=="#True" (
 				if "#%%y"=="#%ntVerNumber%" (
 					set keyFlag=True
 					call :hotfixInst "%%~x" "%%~y" "%%~z"
+					if "#!dismExitCode!"=="#3010" (
+						call :writeLog INFO instHotfix "补丁安装完成,请重启电脑后继续后续操作." True True
+						rem 如果需要重启,或有补丁安装失败,设置跳过标志						
+						set hotFixFlag=True
+					)
+				if "#!returnValue!"=="#False" (
+					call :writeLog ERROR instHotfix "补丁安装失败,请联系管理员处理." True True
+					rem 如果需要重启,或有补丁安装失败,则设置跳过标志
+					set hotFixFlag=True
+					)
 				)
 			)
 		)
+		if "#!hotFixFlag!"=="#True" (
+			rem 如果需要重启,或有补丁安装失败,则跳过agent和product的安装过程
+			goto :esetSkip
+			)
 		if not "!keyFlag!"=="True" (
 			call :writeLog WARNING instHotfix "补丁处理完毕,未能匹配当前系统版本,请联系相关人员处理" True True
+			goto :esetSkip
 		)
 	) else (
-		call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+		call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 		set exitCode=96
 	)
 )
@@ -476,7 +497,7 @@ if "#%argsAgent%"=="#True" (
 				set exitCode=0
 			)
 		) else (
-			call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+			call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 			set exitCode=96
 		)
 	) else (
@@ -525,7 +546,7 @@ if "#%argsProduct%"=="#True" (
 				set exitCode=0
 			)
 		) else (
-			call :writeLog ERROR uacStatus "你必须要以管理员身份运行此脚本,才能正常使用这些功能" True True
+			call :writeLog ERROR uacStatus "你必须以管理员身份运行此脚本,才能正常使用这些功能" True True
 			set exitCode=96
 		)
 	) else (
@@ -1082,6 +1103,7 @@ set hotfixList=%hotfixList:_= %
 call :writeLog INFO instHotfix "系统类型: %~1, bulidNumber:%~2, 补丁安装列表: %hotfixList%" True True
 if "#%hotfixList%"=="#none" (
     call :writeLog WARNING instHotfix "未获取到需要安装的补丁列表,暂不支持此系统,建议升级到更高版本" True True
+    set returnValue=False
     goto :eof
 )
 call :writeLog INFO instHotfix "正在扫描系统补丁..." True True
@@ -1106,6 +1128,7 @@ for %%a in (%hotfixList%) do (
 
         if not exist "!hotfix_%%a!" (
             call :writeLog ERROR instHotfix "未找到可使用的路径:[!hotfix_%%a!],终止安装" True True
+            set returnValue=False
             goto :eof
         ) else (
             call :writeLog INFO instHotfix "开始安装补丁: [%%a]" True True
@@ -1114,6 +1137,7 @@ for %%a in (%hotfixList%) do (
             call :writeLog INFO instHotfix "这个补丁 [%%a] 安装状态是:[!returnValue!]" True True
             if "#!dismExitCode!"=="#3010" (
                 call :writeLog WARNING instHotfix "这个补丁 [%%a] 安装状态是:[挂起],你需要重启才能进行后续安装" True True
+		set returnValue=True
                 goto :eof
             )
         )

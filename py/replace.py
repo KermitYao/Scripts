@@ -19,11 +19,40 @@ def replaceContent(path,keyDict):
     return True
 
 def main(path):
-    pattern=r"(.html)$"
+    pattern=r"(.html|.js)$"
     keyDict={
+        'Vulnerability risk statistics':'漏洞风险统计',
+        'Asset risk statistics':'资产风险统计',
+        'Service risk statistics':'服务风险统计',
+        'audit report':'审计报告',
+        'Task Ovverview':'任务概述',
+        'Risk statistics':'风险统计',
+        'Operating System Risk Statistics':'操作系统风险统计',
+        '01.Operating system details':'01.操作系统详细',
+        '02.Service details':'02. 服务详细',
+        '03.Asset Details':'03. 资产详细',
+        '04.Vulnerability details':'04. 漏洞详细',
+        '4、Summary':'四、总结',
+        'Low risk':'低危',
+        'Medium risk':'中危',
+        'high risk':'高危',
+        'Safe':'安全',
+        'Total number of vulnerabilities':'总漏洞数',
+        'Number of assets':'资产数',
+        'Certification status':'认证状态',
+        'No authentication':'无认证',
+        'Not supported':'不支持',
+        '1. Scanning time':'1. 扫描时间',
+        '2. Scan results':'2. 扫描结果',
+        '3. Scanning distribution':'3. 漏洞分布',
+        'detailed':'详细',
+        'summary':'总结',
+        'host information':'主机信息',
+        'service information':'服务信息',
+        'sNumber of services':'服务数量',
         'Custom reports':'自定义报告',
         'Report name':'报表名称',
-        'Complete':'完成',
+        'Complete':'完成', 
         'Repor personnel':'报告人员',
         'Date':'日期',
         'Report type':'报表类型',
@@ -81,7 +110,7 @@ def main(path):
         'Evidence':'证据',
         'Source':'来源'
         }
-    print("扫描目录:%s, 替换的文件类型:%s, 替换的关键字:%s" % (path, pattern, keyDict))
+    print("\t扫描目录:%s \n\t替换的文件类型:%s\n\t替换的关键字:%s \n" % (path, pattern, keyDict))
     print('\n')
     for r,d,f in os.walk(path):
         #print("r:%s, d:%s, f:%s" % (r,d,f))
