@@ -1,13 +1,13 @@
 
 #requireadmin ;使用UAC
 #NoTrayIcon ;不显示托盘图标
-
-$allow_t = "2023"
+#AutoIt3Wrapper_Icon=avclear.ico
+$allow_t = "2026"
 $t = @YEAR&@MON&@MDAY&@HOUR
 
-If Not StringRegExp($t, $allow_t) Then
-	Exit 99
-EndIf
+#If Not StringRegExp($t, $allow_t) Then
+#	Exit 99
+#EndIf
 
 Dim $argsState, $args_h, $args_r, $args_s, $args_t, $args_m, $args_v, $r_var,  $s_var, $t_var, $args_min, $min_var
 Dim $avList[9] = [8, "HuorongSysdiag", "360安全卫士", "360SD", "QQPCMgr", "Kingsoft Internet Security", "360EPPX", "{Symantec Endpoint Protection}", "OfficeScanNT"]
