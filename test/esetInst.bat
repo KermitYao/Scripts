@@ -64,7 +64,8 @@ goto :begin
 ::* v2.1.2_20240617_beta
 	1.修复-a参数,如有未安装补丁、或补丁需用重启时不会自动跳过后续下载安装的问题
 
-
+::* v2.1.3_20240807_beta
+	1.更新 现在补丁安装模块，会检查补丁的安装状态是否停留在挂起，以避免出现已安装未重启导致的重复安装问题。
 ::-----readme-----
 
 快速使用:
@@ -105,7 +106,7 @@ goto :begin
 ::-----readme-----
 
 cls
-@set version=v2.1.2_20240617_beta
+@set version=v2.1.3_20240807_beta
 @echo off
 setlocal enabledelayedexpansion
 
@@ -1071,17 +1072,26 @@ if "#!errorlevel!"=="#3010" set returnValue=True
 set msiexecExitCode=!errorlevel!
 goto :eof
 
-rem 判断是否安装补丁; 传入参数: 补丁号列表 = "补丁号 补丁号"；例：call :getHotfixStatus "KB4474419 KB4490628" ; 返回值:无返回值，但是如果查找到对应的补丁号存在则传入的补丁后会被赋值为 True，如 KB4474419=True
+rem 判断是否安装补丁; 传入参数: 补丁号列表 = "补丁号 补丁号"；例：call :getHotfixStatus "KB4474419 KB4490628" ; 返回值:无返回值，但是如果查找到对应的补丁号存在则传入的补丁后会被赋值为以下状态: InstallPending|Installed|False，如 KB4474419=True
 :getHotfixStatus
 set currentHotfixList=
 
-for /f %%a in ('wmic qfe get hotfixid') do set currentHotfixList=!currentHotfixList! %%a
+for %%a in (%~1) do set %%a=False
+
+for /f "delims=_~| tokens=3,7" %%a in ('dism /online /english /format:table /get-packages^|findstr "for_KB[0-9]*.*"') do (
+	set tmpHotfixStatus=%%a:%%b
+	set tmpHotfixStatus=!tmpHotfixStatus: =!
+	set currentHotfixList=!currentHotfixList! !tmpHotfixStatus!
+)
 for %%a in (!currentHotfixList!) do (
 	for %%x in (%~1) do (
-		if /i "#%%a"=="#%%x" (
-			set %%x=True
-		)
+		for /f "delims=: tokens=1,2" %%l in ("%%a") do (
+			if /i "#%%l"=="#%%x" (
+				set %%x=%%m
+			)
+		)	
 	)
+
 )
 
 goto :eof
@@ -1107,13 +1117,23 @@ if "#%hotfixList%"=="#none" (
     goto :eof
 )
 call :writeLog INFO instHotfix "正在扫描系统补丁..." True True
+
 call :getHotfixStatus "%hotfixList%"
 
 for %%a in (%hotfixList%) do (
-    if "#!%%a!"=="#True" (
+    if "#!%%a!"=="#Installed" (
         call :writeLog INFO instHotfix "补丁 [%%a] 已经存在,无需重复安装" True True
         set exitCode=0
-    ) else (
+		)
+
+    if "#!%%a!"=="#InstallPending" (
+        call :writeLog INFO instHotfix "补丁 [%%a] 已安装,但处于[挂起]状态,请重启电脑后继续运行当前脚本." True True
+		set hotFixFlag=True
+		set returnValue=True
+        set exitCode=0
+		)
+
+    if "#!%%a!"=="#False" (
 		call :getLinkType "%path_hotfix_url%"
 		if not "!linkType!"=="url" (
 			call :connectShare "%path_hotfix_url%" %shareUser% %sharePwd%
@@ -1192,6 +1212,7 @@ for %%a in (!hotfixKey!) do (
 		)
 	)
 )
+
 if not "!keyFlag!"=="True" (
 	echo   当前系统无补丁需要安装或暂不支持
 ) else (
@@ -1201,11 +1222,15 @@ if not "!keyFlag!"=="True" (
 		set hotfixList=!hotfixList:_= !
 		call :getHotfixStatus "!hotfixList!"
 		for %%a in (!hotfixList!) do (
-			if "#!%%a!"=="#True" (
+			if "#!%%a!"=="#Installed" (
 			    echo   %%a 已安装
-			) else (
-                echo   %%a 未安装
-	       )
+			)
+			if "#!%%a!"=="#InstallPending" (
+			    echo   %%a 已挂起^(待重启^)
+			)
+			if "#!%%a!"=="#False" (
+			    echo   %%a 未安装
+			)
 		)
 	)
 )
