@@ -550,7 +550,7 @@ if "#%argsProduct%"=="#True" (
 			set exitCode=96
 		)
 	) else (
-		call :writeLog ERROR instAgent "AGENT 不在支持当前系统版本!" True True
+		call :writeLog ERROR instAgent "安全产品 不在支持当前系统版本!" True True
 		set exitCode=101
 	)
 )
