@@ -337,7 +337,7 @@ EndFunc
 Func rm360epp($avName, $avUninstPath)
 	Local $avHandle
 	$avTitle = " 360终端安全管理系统 卸载"
-	$avSubTitle = "360产品"
+	$avSubTitle = "360"
 	$classNN_ask_classNN = "Static1"
 	$classNN_ask_text = "  你确实要完全移除360安全卫士，及其所有的组件？"
 	$classNN_ack = "Button2"

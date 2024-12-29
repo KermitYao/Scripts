@@ -16,7 +16,7 @@ echo 关闭自保,请手动确定...
 for %%a in (%processList%) do (
     taskkill /f /im %%a
 )
-
+start "" %instPath%
 :endScript
 echo end.
 pause
